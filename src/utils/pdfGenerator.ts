@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import type { Proposta, Produto, ServicoAdicional } from "@/types";
+import type { Proposta, Produto, UpgradePlataforma } from "@/types";
 import { calcularResumo } from "./calculations";
 import { formatCurrency, formatDate } from "./formatting";
 
@@ -22,8 +22,11 @@ export async function generateProposalPDF(proposta: Proposta) {
 
   const resumo = calcularResumo(proposta.itens);
   const produtoItem = proposta.itens.find((i) => i.tipo === "produto");
-  const servicos = proposta.itens.filter((i) => i.tipo === "servico");
+  const funnelItem = proposta.itens.find((i) => i.tipo === "upgrade_funnel");
+  const flixItem = proposta.itens.find((i) => i.tipo === "upgrade_flix");
   const produto = produtoItem?.item as Produto | undefined;
+  const funnel = funnelItem?.item as UpgradePlataforma | undefined;
+  const flix = flixItem?.item as UpgradePlataforma | undefined;
 
   function checkPageBreak(needed: number) {
     if (y + needed > pageHeight - 30) {
@@ -182,6 +185,8 @@ export async function generateProposalPDF(proposta: Proposta) {
   // ========= SOLUCAO PROPOSTA =========
   sectionTitle("SOLUCAO PROPOSTA");
 
+  let sectionNum = 1;
+
   if (produto) {
     // Product header
     checkPageBreak(12);
@@ -190,8 +195,13 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.setFontSize(10);
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
-    doc.text(`1. PRODUTO PRINCIPAL: ${produto.nome}`, margin + 3, y + 4);
+    doc.text(
+      `${sectionNum}. PRODUTO PRINCIPAL: ${produto.nome}`,
+      margin + 3,
+      y + 4
+    );
     y += 12;
+    sectionNum++;
 
     bodyText(
       `Investimento: ${formatCurrency(produto.investimento.mensal)}/mes`,
@@ -221,51 +231,170 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 3;
   }
 
-  // Additional services
-  if (servicos.length > 0) {
+  // Funnel Pages upgrade
+  if (funnel && funnelItem) {
     checkPageBreak(12);
     doc.setFillColor(...COLORS.bgLight);
     doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
     doc.setFontSize(10);
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
-    doc.text("2. SERVICOS ADICIONAIS", margin + 3, y + 4);
+    doc.text(
+      `${sectionNum}. FUNNEL PAGES - ${funnel.plano}`,
+      margin + 3,
+      y + 4
+    );
     y += 14;
+    sectionNum++;
 
-    servicos.forEach((item, index) => {
-      const servico = item.item as ServicoAdicional;
-      checkPageBreak(12);
+    bodyText(funnel.descricao, false, 3);
+    y += 2;
+
+    // Pricing breakdown
+    bodyText("Investimento:", true, 3);
+    bodyText(
+      `Plano Base: ${formatCurrency(funnelItem.precoBase ?? funnel.preco)}/mes`,
+      false,
+      6
+    );
+    if ((funnelItem.funisExtras ?? 0) > 0) {
       bodyText(
-        `${index + 1}. ${servico.nome}${item.quantidade > 1 ? ` (x${item.quantidade})` : ""}`,
-        true,
-        3
-      );
-      bodyText(
-        `Investimento: ${formatCurrency(servico.preco * item.quantidade)}/${servico.tipo === "mensal" ? "mes" : "unico"}`,
+        `Funis Extras (${funnelItem.funisExtras}x): ${formatCurrency(funnelItem.precoExtras ?? 0)}/mes`,
         false,
         6
       );
+    }
+    bodyText(
+      `Total: ${formatCurrency(funnelItem.precoTotal ?? funnel.preco)}/mes`,
+      true,
+      6
+    );
+    y += 2;
 
-      if (servico.entregaveis.length > 0) {
-        servico.entregaveis.forEach((ent) => {
-          bulletPoint(ent, 8);
-        });
-      }
-      y += 3;
+    // Deliverables
+    bodyText("Recursos inclusos:", true, 3);
+    funnel.entregaveisBase.forEach((ent) => {
+      bulletPoint(ent, 6);
     });
+
+    // Observations
+    if (funnel.observacoes.length > 0) {
+      y += 2;
+      funnel.observacoes.forEach((obs) => {
+        checkPageBreak(5);
+        doc.setFontSize(7);
+        doc.setTextColor(...COLORS.cinza);
+        doc.setFont("helvetica", "italic");
+        const lines = doc.splitTextToSize(obs, contentWidth - 6);
+        doc.text(lines, margin + 6, y);
+        y += lines.length * 3.5;
+      });
+    }
+    y += 4;
+  }
+
+  // Experience Flix upgrade
+  if (flix && flixItem) {
+    checkPageBreak(12);
+    doc.setFillColor(...COLORS.bgLight);
+    doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
+    doc.setFontSize(10);
+    doc.setTextColor(...COLORS.grafite);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      `${sectionNum}. EXPERIENCE FLIX - ${flix.plano}`,
+      margin + 3,
+      y + 4
+    );
+    y += 14;
+    sectionNum++;
+
+    bodyText(flix.descricao, false, 3);
+    y += 2;
+
+    // Price
+    bodyText(
+      `Investimento: ${formatCurrency(flixItem.precoTotal ?? flix.preco)}/mes`,
+      true,
+      3
+    );
+    y += 2;
+
+    // Plan limits
+    if (flix.limitesPlano) {
+      bodyText("Limites do Plano:", true, 3);
+      bulletPoint(
+        `Areas de Membros: ${flix.limitesPlano.areasMembrosBD}`,
+        6
+      );
+      bulletPoint(
+        `Membros Ativos/mes: ${flix.limitesPlano.membrosAtivosMes}`,
+        6
+      );
+      if (flix.limitesPlano.relatoriosPersonalizadosBD > 0) {
+        bulletPoint(
+          `Relatorios Personalizados: ${flix.limitesPlano.relatoriosPersonalizadosBD}`,
+          6
+        );
+      }
+      y += 2;
+    }
+
+    // Deliverables
+    bodyText("Recursos inclusos:", true, 3);
+    flix.entregaveisBase.forEach((ent) => {
+      bulletPoint(ent, 6);
+    });
+
+    // What's not included
+    if (flix.naoInclui && flix.naoInclui.length > 0) {
+      y += 2;
+      bodyText("Nao inclui:", true, 3);
+      flix.naoInclui.forEach((item) => {
+        checkPageBreak(5);
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.cinza);
+        doc.setFont("helvetica", "normal");
+        const lines = doc.splitTextToSize(`- ${item}`, contentWidth - 8);
+        doc.text(lines, margin + 6, y);
+        y += lines.length * 4;
+      });
+    }
+
+    // Observations
+    if (flix.observacoes.length > 0) {
+      y += 2;
+      flix.observacoes.forEach((obs) => {
+        checkPageBreak(5);
+        doc.setFontSize(7);
+        doc.setTextColor(...COLORS.cinza);
+        doc.setFont("helvetica", "italic");
+        const lines = doc.splitTextToSize(obs, contentWidth - 6);
+        doc.text(lines, margin + 6, y);
+        y += lines.length * 3.5;
+      });
+    }
+    y += 4;
   }
 
   // ========= INVESTIMENTO =========
   y += 2;
   sectionTitle("INVESTIMENTO");
 
-  // Box
-  checkPageBreak(45);
+  // Calculate dynamic box height
+  let boxHeight = 14; // base for subtotal + total sections
+  if (resumo.totalProduto > 0) boxHeight += 6;
+  if (resumo.totalFunnel > 0) boxHeight += 6;
+  if (resumo.totalFlix > 0) boxHeight += 6;
+  if (resumo.desconto > 0) boxHeight += 6;
+  boxHeight += 18; // total + annual
+
+  checkPageBreak(boxHeight + 5);
   const boxY = y - 2;
   doc.setFillColor(248, 248, 248);
-  doc.roundedRect(margin, boxY, contentWidth, 42, 2, 2, "F");
+  doc.roundedRect(margin, boxY, contentWidth, boxHeight, 2, 2, "F");
   doc.setDrawColor(...COLORS.cinzaClaro);
-  doc.roundedRect(margin, boxY, contentWidth, 42, 2, 2, "S");
+  doc.roundedRect(margin, boxY, contentWidth, boxHeight, 2, 2, "S");
 
   const boxMargin = margin + 5;
   const boxRight = pageWidth - margin - 5;
@@ -283,13 +412,27 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 6;
   }
 
-  if (resumo.totalServicos > 0) {
+  if (resumo.totalFunnel > 0) {
+    doc.setFontSize(9);
     doc.setTextColor(...COLORS.cinza);
     doc.setFont("helvetica", "normal");
-    doc.text("Servicos Adicionais:", boxMargin, y + 4);
+    doc.text("Funnel Pages:", boxMargin, y + 4);
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(resumo.totalServicos), boxRight, y + 4, {
+    doc.text(formatCurrency(resumo.totalFunnel), boxRight, y + 4, {
+      align: "right",
+    });
+    y += 6;
+  }
+
+  if (resumo.totalFlix > 0) {
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.cinza);
+    doc.setFont("helvetica", "normal");
+    doc.text("Experience Flix:", boxMargin, y + 4);
+    doc.setTextColor(...COLORS.grafite);
+    doc.setFont("helvetica", "bold");
+    doc.text(formatCurrency(resumo.totalFlix), boxRight, y + 4, {
       align: "right",
     });
     y += 6;
@@ -347,7 +490,7 @@ export async function generateProposalPDF(proposta: Proposta) {
     align: "right",
   });
 
-  y = boxY + 48;
+  y = boxY + boxHeight + 6;
 
   // ========= CONDICOES COMERCIAIS =========
   sectionTitle("CONDICOES COMERCIAIS");
@@ -355,6 +498,12 @@ export async function generateProposalPDF(proposta: Proposta) {
   if (produto) {
     bulletPoint(`Duracao: ${produto.duracao}`);
     bulletPoint(`Periodo Minimo: ${produto.investimento.minimoMeses} meses`);
+  }
+  if (funnel) {
+    bulletPoint(`Funnel Pages: Contrato de ${funnel.duracaoMinima} meses`);
+  }
+  if (flix) {
+    bulletPoint(`Experience Flix: Contrato de ${flix.duracaoMinima} meses`);
   }
   bulletPoint("Aviso Previo: 30 dias");
   if (produto?.investimento.extras) {

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type {
   ItemCarrinho,
   Produto,
-  ServicoAdicional,
+  UpgradePlataforma,
   DadosCliente,
   ResumoCarrinho,
 } from "@/types";
@@ -25,10 +25,10 @@ interface CartState {
   toasts: Toast[];
 
   adicionarProduto: (produto: Produto) => void;
-  adicionarServico: (servico: ServicoAdicional) => void;
+  adicionarFunnel: (upgrade: UpgradePlataforma, funisExtras: number) => void;
+  adicionarFlix: (upgrade: UpgradePlataforma) => void;
   removerItem: (itemId: string) => void;
-  atualizarQuantidade: (itemId: string, quantidade: number) => void;
-  atualizarNotas: (itemId: string, notas: string) => void;
+  atualizarFunisExtras: (itemId: string, funisExtras: number) => void;
   setDadosCliente: (dados: Partial<DadosCliente>) => void;
   setConsultor: (nome: string) => void;
   setStep: (step: AppStep) => void;
@@ -66,28 +66,85 @@ export const useCartStore = create<CartState>((set, get) => ({
   adicionarProduto: (produto: Produto) => {
     set((state) => {
       const novoCarrinho = state.carrinho.filter((i) => i.tipo !== "produto");
-      const hadProduct = state.carrinho.some((i) => i.tipo === "produto");
-      return { carrinho: [...novoCarrinho, { tipo: "produto", item: produto, quantidade: 1 }] };
+      return {
+        carrinho: [
+          ...novoCarrinho,
+          { tipo: "produto" as const, item: produto, quantidade: 1 },
+        ],
+      };
     });
     get().addToast(`${produto.categoria} adicionado!`, "success");
   },
 
-  adicionarServico: (servico: ServicoAdicional) => {
+  adicionarFunnel: (upgrade: UpgradePlataforma, funisExtras: number) => {
     const state = get();
-    const existe = state.carrinho.find(
-      (i) => i.tipo === "servico" && i.item.id === servico.id
+    const funnelExistente = state.carrinho.find(
+      (i) => i.tipo === "upgrade_funnel"
     );
-    if (existe) {
-      get().addToast("Este servico ja esta no carrinho", "warning");
+    if (funnelExistente) {
+      get().addToast(
+        "Voce ja tem um plano Funnel Pages. Remova-o antes de adicionar outro.",
+        "warning"
+      );
       return;
     }
+
+    const precoBase = upgrade.preco;
+    const precoPorFunil = upgrade.upgrades?.funisExtras.precoPorUnidade ?? 100;
+    const precoExtras = funisExtras * precoPorFunil;
+    const precoTotal = precoBase + precoExtras;
+
     set((s) => ({
       carrinho: [
         ...s.carrinho,
-        { tipo: "servico", item: servico, quantidade: 1 },
+        {
+          tipo: "upgrade_funnel" as const,
+          item: upgrade,
+          quantidade: 1,
+          funisExtras,
+          precoBase,
+          precoExtras,
+          precoTotal,
+        },
       ],
     }));
-    get().addToast("Servico adicionado!", "success");
+    get().addToast(
+      `Funnel Pages ${upgrade.plano} adicionado!` +
+        (funisExtras > 0 ? ` (+${funisExtras} funis extras)` : ""),
+      "success"
+    );
+  },
+
+  adicionarFlix: (upgrade: UpgradePlataforma) => {
+    const state = get();
+    const flixExistente = state.carrinho.find(
+      (i) => i.tipo === "upgrade_flix"
+    );
+    if (flixExistente) {
+      get().addToast(
+        "Voce ja tem um plano Experience Flix. Remova-o antes de adicionar outro.",
+        "warning"
+      );
+      return;
+    }
+
+    set((s) => ({
+      carrinho: [
+        ...s.carrinho,
+        {
+          tipo: "upgrade_flix" as const,
+          item: upgrade,
+          quantidade: 1,
+          precoBase: upgrade.preco,
+          precoExtras: 0,
+          precoTotal: upgrade.preco,
+        },
+      ],
+    }));
+    get().addToast(
+      `Experience Flix ${upgrade.plano} adicionado ao pacote!`,
+      "success"
+    );
   },
 
   removerItem: (itemId: string) => {
@@ -96,20 +153,24 @@ export const useCartStore = create<CartState>((set, get) => ({
     }));
   },
 
-  atualizarQuantidade: (itemId: string, quantidade: number) => {
-    if (quantidade < 1 || quantidade > 10) return;
+  atualizarFunisExtras: (itemId: string, funisExtras: number) => {
+    if (funisExtras < 0 || funisExtras > 20) return;
     set((state) => ({
-      carrinho: state.carrinho.map((i) =>
-        i.item.id === itemId ? { ...i, quantidade } : i
-      ),
-    }));
-  },
-
-  atualizarNotas: (itemId: string, notas: string) => {
-    set((state) => ({
-      carrinho: state.carrinho.map((i) =>
-        i.item.id === itemId ? { ...i, notas } : i
-      ),
+      carrinho: state.carrinho.map((i) => {
+        if (i.item.id !== itemId || i.tipo !== "upgrade_funnel") return i;
+        const upgrade = i.item as UpgradePlataforma;
+        const precoPorFunil =
+          upgrade.upgrades?.funisExtras.precoPorUnidade ?? 100;
+        const precoBase = upgrade.preco;
+        const precoExtras = funisExtras * precoPorFunil;
+        return {
+          ...i,
+          funisExtras,
+          precoBase,
+          precoExtras,
+          precoTotal: precoBase + precoExtras,
+        };
+      }),
     }));
   },
 

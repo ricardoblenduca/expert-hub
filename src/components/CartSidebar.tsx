@@ -4,7 +4,6 @@ import { useCartStore } from "@/store/useCartStore";
 import { calcularResumo } from "@/utils/calculations";
 import { formatCurrency } from "@/utils/formatting";
 import CartItem from "./CartItem";
-import type { Produto, ServicoAdicional } from "@/types";
 
 export default function CartSidebar() {
   const carrinho = useCartStore((s) => s.carrinho);
@@ -16,7 +15,8 @@ export default function CartSidebar() {
 
   const resumo = calcularResumo(carrinho);
   const produtoItem = carrinho.find((i) => i.tipo === "produto");
-  const servicos = carrinho.filter((i) => i.tipo === "servico");
+  const funnelItem = carrinho.find((i) => i.tipo === "upgrade_funnel");
+  const flixItem = carrinho.find((i) => i.tipo === "upgrade_flix");
 
   const handleFinalize = () => {
     if (carrinho.length === 0) {
@@ -92,17 +92,23 @@ export default function CartSidebar() {
               </div>
             )}
 
-            {/* Additional services */}
-            {servicos.length > 0 && (
+            {/* Funnel Pages upgrade */}
+            {funnelItem && (
               <div>
                 <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-blenduca-cinza-medio mb-2 mt-4">
-                  SERVICOS ADICIONAIS
+                  FUNNEL PAGES
                 </h3>
-                <div className="space-y-2">
-                  {servicos.map((item) => (
-                    <CartItem key={item.item.id} item={item} />
-                  ))}
-                </div>
+                <CartItem item={funnelItem} />
+              </div>
+            )}
+
+            {/* Experience Flix upgrade */}
+            {flixItem && (
+              <div>
+                <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-blenduca-cinza-medio mb-2 mt-4">
+                  EXPERIENCE FLIX
+                </h3>
+                <CartItem item={flixItem} />
               </div>
             )}
           </>
@@ -122,11 +128,19 @@ export default function CartSidebar() {
                 </span>
               </div>
             )}
-            {resumo.totalServicos > 0 && (
+            {resumo.totalFunnel > 0 && (
               <div className="flex justify-between text-sm font-kanit">
-                <span className="text-blenduca-cinza-medio">Servicos Adicionais:</span>
+                <span className="text-blenduca-cinza-medio">Funnel Pages:</span>
                 <span className="font-medium text-blenduca-grafite">
-                  {formatCurrency(resumo.totalServicos)}
+                  {formatCurrency(resumo.totalFunnel)}
+                </span>
+              </div>
+            )}
+            {resumo.totalFlix > 0 && (
+              <div className="flex justify-between text-sm font-kanit">
+                <span className="text-blenduca-cinza-medio">Experience Flix:</span>
+                <span className="font-medium text-blenduca-grafite">
+                  {formatCurrency(resumo.totalFlix)}
                 </span>
               </div>
             )}

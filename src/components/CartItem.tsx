@@ -1,23 +1,24 @@
 "use client";
 
-import type { ItemCarrinho, Produto, ServicoAdicional } from "@/types";
+import type { ItemCarrinho, Produto, UpgradePlataforma } from "@/types";
 import { useCartStore } from "@/store/useCartStore";
 import { formatCurrency } from "@/utils/formatting";
 
 export default function CartItem({ item }: { item: ItemCarrinho }) {
   const removerItem = useCartStore((s) => s.removerItem);
-  const atualizarQuantidade = useCartStore((s) => s.atualizarQuantidade);
+  const atualizarFunisExtras = useCartStore((s) => s.atualizarFunisExtras);
 
   const isProduto = item.tipo === "produto";
+  const isFunnel = item.tipo === "upgrade_funnel";
+  const isFlix = item.tipo === "upgrade_flix";
+
   const nome = isProduto
     ? (item.item as Produto).categoria
-    : (item.item as ServicoAdicional).nome;
+    : (item.item as UpgradePlataforma).nome;
+
   const preco = isProduto
     ? (item.item as Produto).investimento.mensal
-    : (item.item as ServicoAdicional).preco * item.quantidade;
-  const tipo = isProduto
-    ? "mensal"
-    : (item.item as ServicoAdicional).tipo;
+    : item.precoTotal ?? (item.item as UpgradePlataforma).preco;
 
   return (
     <div className="bg-white rounded-lg border border-gray-100 p-3 transition-all hover:border-gray-200">
@@ -27,42 +28,73 @@ export default function CartItem({ item }: { item: ItemCarrinho }) {
             {isProduto && (
               <span className="w-2 h-2 rounded-full bg-blenduca-vermelho shrink-0" />
             )}
+            {isFunnel && (
+              <span className="w-2 h-2 rounded-full bg-blenduca-verde shrink-0" />
+            )}
+            {isFlix && (
+              <span className="w-2 h-2 rounded-full bg-blenduca-azul shrink-0" />
+            )}
             <h4 className="font-kanit font-medium text-sm text-blenduca-grafite truncate">
               {nome}
             </h4>
           </div>
+
+          {/* Funnel extras detail */}
+          {isFunnel && (item.funisExtras ?? 0) > 0 && (
+            <div className="text-[10px] font-kanit text-blenduca-cinza-medio mb-0.5">
+              Base: {formatCurrency(item.precoBase ?? 0)} + {item.funisExtras}{" "}
+              funis: {formatCurrency(item.precoExtras ?? 0)}
+            </div>
+          )}
+
+          {/* Flix plan summary */}
+          {isFlix && (item.item as UpgradePlataforma).limitesPlano && (
+            <div className="text-[10px] font-kanit text-blenduca-cinza-medio mb-0.5">
+              {(item.item as UpgradePlataforma).limitesPlano!.areasMembrosBD}{" "}
+              Area(s) |{" "}
+              {(item.item as UpgradePlataforma).limitesPlano!.membrosAtivosMes}{" "}
+              membros
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
             <span className="font-kanit font-bold text-sm text-blenduca-grafite">
               {formatCurrency(preco)}
             </span>
             <span className="font-kanit text-[10px] text-blenduca-cinza-medio">
-              /{tipo === "mensal" ? "mes" : "unico"}
+              /mes
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* Quantity controls for services */}
-          {!isProduto && (
+          {/* Funnel extras quantity control */}
+          {isFunnel && (
             <div className="flex items-center border border-gray-200 rounded">
               <button
                 onClick={() =>
-                  atualizarQuantidade(item.item.id, item.quantidade - 1)
+                  atualizarFunisExtras(
+                    item.item.id,
+                    Math.max(0, (item.funisExtras ?? 0) - 1)
+                  )
                 }
                 className="px-1.5 py-0.5 text-xs text-gray-500 hover:bg-gray-50 transition-colors"
-                aria-label="Diminuir quantidade"
+                aria-label="Diminuir funis extras"
               >
                 -
               </button>
               <span className="px-2 py-0.5 text-xs font-kanit font-medium text-blenduca-grafite border-x border-gray-200">
-                {item.quantidade}
+                {item.funisExtras ?? 0}
               </span>
               <button
                 onClick={() =>
-                  atualizarQuantidade(item.item.id, item.quantidade + 1)
+                  atualizarFunisExtras(
+                    item.item.id,
+                    Math.min(20, (item.funisExtras ?? 0) + 1)
+                  )
                 }
                 className="px-1.5 py-0.5 text-xs text-gray-500 hover:bg-gray-50 transition-colors"
-                aria-label="Aumentar quantidade"
+                aria-label="Aumentar funis extras"
               >
                 +
               </button>

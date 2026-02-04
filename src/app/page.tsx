@@ -3,10 +3,11 @@
 import { useEffect } from "react";
 import { useCartStore } from "@/store/useCartStore";
 import { produtos } from "@/data/produtos";
-import { servicosAdicionais } from "@/data/servicos";
+import { upgradesPlataforma } from "@/data/servicos";
 import Header from "@/components/Header";
 import ProductCard from "@/components/ProductCard";
-import ServiceCard from "@/components/ServiceCard";
+import UpgradeCardFunnel from "@/components/UpgradeCardFunnel";
+import UpgradeCardFlix from "@/components/UpgradeCardFlix";
 import CartSidebar from "@/components/CartSidebar";
 import ClientForm from "@/components/ClientForm";
 import ProposalPreview from "@/components/ProposalPreview";
@@ -51,11 +52,11 @@ export default function Home() {
     }
   }, [setDadosCliente, setConsultor]);
 
-  const profissionais = servicosAdicionais.filter(
-    (s) => s.categoria === "Profissionais"
+  const funnelUpgrades = upgradesPlataforma.filter(
+    (u) => u.tipo === "funnel_pages"
   );
-  const diagnosticos = servicosAdicionais.filter(
-    (s) => s.categoria === "Diagnosticos"
+  const flixUpgrades = upgradesPlataforma.filter(
+    (u) => u.tipo === "experience_flix"
   );
 
   return (
@@ -90,52 +91,50 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Additional services */}
+            {/* Upgrades de Plataforma */}
             <section className="mb-10">
               <div className="mb-6">
                 <h2 className="font-kanit font-bold text-2xl text-blenduca-grafite">
-                  Servicos Adicionais
+                  Upgrades de Plataforma
                 </h2>
                 <p className="font-kanit text-sm text-blenduca-cinza-medio mt-1">
-                  Complementos para potencializar os resultados
+                  Adicione ferramentas de plataforma ao pacote do cliente
                 </p>
               </div>
 
-              {/* Profissionais */}
-              <div className="mb-6">
+              {/* Funnel Pages */}
+              <div className="mb-8">
                 <h3 className="font-play text-xs font-bold tracking-wider uppercase text-blenduca-cinza-medio mb-4">
-                  PROFISSIONAIS
+                  FUNNEL PAGES
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {profissionais.map((servico, index) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {funnelUpgrades.map((upgrade, index) => (
                     <div
-                      key={servico.id}
+                      key={upgrade.id}
                       style={{ animationDelay: `${index * 0.1}s` }}
                     >
-                      <ServiceCard servico={servico} />
+                      <UpgradeCardFunnel upgrade={upgrade} />
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Diagnosticos */}
-              {diagnosticos.length > 0 && (
-                <div>
-                  <h3 className="font-play text-xs font-bold tracking-wider uppercase text-blenduca-cinza-medio mb-4">
-                    DIAGNOSTICOS
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {diagnosticos.map((servico, index) => (
-                      <div
-                        key={servico.id}
-                        style={{ animationDelay: `${index * 0.1}s` }}
-                      >
-                        <ServiceCard servico={servico} />
-                      </div>
-                    ))}
-                  </div>
+              {/* Experience Flix */}
+              <div>
+                <h3 className="font-play text-xs font-bold tracking-wider uppercase text-blenduca-cinza-medio mb-4">
+                  EXPERIENCE FLIX
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {flixUpgrades.map((upgrade, index) => (
+                    <div
+                      key={upgrade.id}
+                      style={{ animationDelay: `${index * 0.1}s` }}
+                    >
+                      <UpgradeCardFlix upgrade={upgrade} />
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
             </section>
           </main>
 

@@ -1,4 +1,4 @@
-import type { ItemCarrinho, Produto, ServicoAdicional, ResumoCarrinho } from "@/types";
+import type { ItemCarrinho, Produto, ResumoCarrinho } from "@/types";
 
 export function aplicarDesconto(subtotal: number): number {
   if (subtotal >= 50000) return subtotal * 0.1;
@@ -9,23 +9,26 @@ export function aplicarDesconto(subtotal: number): number {
 
 export function calcularResumo(carrinho: ItemCarrinho[]): ResumoCarrinho {
   const produtoPrincipal = carrinho.find((i) => i.tipo === "produto");
-  const servicosAdicionais = carrinho.filter((i) => i.tipo === "servico");
+  const upgradeFunnel = carrinho.find((i) => i.tipo === "upgrade_funnel");
+  const upgradeFlix = carrinho.find((i) => i.tipo === "upgrade_flix");
 
   const totalProduto = produtoPrincipal
     ? (produtoPrincipal.item as Produto).investimento.mensal
     : 0;
 
-  const totalServicos = servicosAdicionais.reduce((acc, curr) => {
-    return acc + (curr.item as ServicoAdicional).preco * curr.quantidade;
-  }, 0);
+  const totalFunnel = upgradeFunnel?.precoTotal ?? 0;
+  const totalFlix = upgradeFlix?.precoTotal ?? 0;
+  const totalUpgrades = totalFunnel + totalFlix;
 
-  const subtotal = totalProduto + totalServicos;
+  const subtotal = totalProduto + totalUpgrades;
   const desconto = aplicarDesconto(subtotal);
   const total = subtotal - desconto;
 
   return {
     totalProduto,
-    totalServicos,
+    totalFunnel,
+    totalFlix,
+    totalUpgrades,
     subtotal,
     desconto,
     total,

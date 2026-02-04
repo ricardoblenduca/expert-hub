@@ -36,21 +36,55 @@ export interface Produto {
   composicaoPreco: Record<string, number>;
 }
 
-export interface ServicoAdicional {
+export interface LimitesPlano {
+  areasMembrosBD: number;
+  relatoriosPersonalizadosBD: number;
+  membrosAtivosMes: string;
+  custoExcedenteMembrosAtivos: number;
+  areasMembrosMensal: number;
+  relatorioPersonalizadoBDMensal: number;
+  iaNovaAreaMembrosMensal: number;
+}
+
+export interface FunisExtrasConfig {
+  disponivel: boolean;
+  descricao: string;
+  precoPorUnidade: number;
+  tipoCobranca: string;
+  minimo: number;
+  maximo: number;
+  tipos: string[];
+}
+
+export interface UpgradePlataforma {
   id: string;
   categoria: string;
+  tipo: "funnel_pages" | "experience_flix";
   nome: string;
   descricao: string;
+  plano: string;
   preco: number;
-  tipo: "mensal" | "unico";
-  nivelDedicacao?: string;
-  entregaveis: string[];
+  tipoCobranca: string;
+  duracaoMinima: number;
+  cor: string;
+  entregaveisBase: string[];
+  diferenciais?: string[];
+  naoInclui?: string[];
+  observacoes: string[];
+  upgrades?: {
+    funisExtras: FunisExtrasConfig;
+  };
+  limitesPlano?: LimitesPlano;
 }
 
 export interface ItemCarrinho {
-  tipo: "produto" | "servico";
-  item: Produto | ServicoAdicional;
+  tipo: "produto" | "upgrade_funnel" | "upgrade_flix";
+  item: Produto | UpgradePlataforma;
   quantidade: number;
+  funisExtras?: number;
+  precoBase?: number;
+  precoExtras?: number;
+  precoTotal?: number;
   notas?: string;
 }
 
@@ -83,7 +117,9 @@ export interface Proposta {
 
 export interface ResumoCarrinho {
   totalProduto: number;
-  totalServicos: number;
+  totalFunnel: number;
+  totalFlix: number;
+  totalUpgrades: number;
   subtotal: number;
   desconto: number;
   total: number;

@@ -2,29 +2,32 @@
 
 import { useCartStore, Step } from "@/store/useCartStore";
 
-// V5.0: New step flow with entry points
+// V5.0: New step flow with entry points (V0.13: Added negociacao)
 const STEPS: { id: Step; label: string; num: number }[] = [
   { id: "modalidade", label: "Programa", num: 1 },
   { id: "nivel", label: "Nivel", num: 2 },
   { id: "customizacoes", label: "Upgrades", num: 3 },
   { id: "agentes", label: "Agentes", num: 4 },
-  { id: "cliente", label: "Cliente", num: 5 },
-  { id: "preview", label: "Proposta", num: 6 },
+  { id: "negociacao", label: "Negociacao", num: 5 },
+  { id: "cliente", label: "Cliente", num: 6 },
+  { id: "preview", label: "Proposta", num: 7 },
 ];
 
 // Steps for technology-only flow
 const TECH_STEPS: { id: Step; label: string; num: number }[] = [
   { id: "tecnologia", label: "Tecnologia", num: 1 },
   { id: "agentes", label: "Agentes", num: 2 },
-  { id: "cliente", label: "Cliente", num: 3 },
-  { id: "preview", label: "Proposta", num: 4 },
+  { id: "negociacao", label: "Negociacao", num: 3 },
+  { id: "cliente", label: "Cliente", num: 4 },
+  { id: "preview", label: "Proposta", num: 5 },
 ];
 
 // Steps for agents-only flow
 const AGENT_STEPS: { id: Step; label: string; num: number }[] = [
   { id: "agentes", label: "Agentes", num: 1 },
-  { id: "cliente", label: "Cliente", num: 2 },
-  { id: "preview", label: "Proposta", num: 3 },
+  { id: "negociacao", label: "Negociacao", num: 2 },
+  { id: "cliente", label: "Cliente", num: 3 },
+  { id: "preview", label: "Proposta", num: 4 },
 ];
 
 export default function Header() {
@@ -89,16 +92,19 @@ export default function Header() {
                     if (s.id === "nivel") return !!carrinho.modalidade;
                     if (s.id === "customizacoes" || s.id === "adicionar_tech") return hasSelection;
                     if (s.id === "agentes") return hasSelection;
+                    if (s.id === "negociacao") return hasSelection;
                     if (s.id === "cliente") return hasAnything;
                     if (s.id === "preview") return false;
                   }
                   if (carrinho.tipoProposta === "tecnologia") {
                     if (s.id === "agentes") return hasTech;
+                    if (s.id === "negociacao") return hasTech || hasAgents;
                     if (s.id === "cliente") return hasTech || hasAgents;
                     if (s.id === "preview") return false;
                   }
                   if (carrinho.tipoProposta === "agentes") {
-                    if (s.id === "cliente") return hasAgents;
+                    if (s.id === "negociacao") return true;
+                    if (s.id === "cliente") return true;
                     if (s.id === "preview") return false;
                   }
                   return isPast;

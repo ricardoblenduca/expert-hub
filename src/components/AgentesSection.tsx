@@ -47,8 +47,9 @@ export default function AgentesSection() {
 
   const { modalidade, nivel, agentes, tipoProposta, tecnologiaAvulsa, centralInteligencia } = carrinho;
 
-  // Central de Inteligência is only available for Business and Scale
-  const centralInteligenciaDisponivel = nivel === "business" || nivel === "scale";
+  // V0.13: Central de Inteligência disponível para todos os usuários na tela de Agentes
+  // (pode ser usado mesmo sem pacote Business/Scale, para propostas de tecnologia ou agentes avulsos)
+  const centralInteligenciaDisponivel = true;
 
   // Local state for extras configuration before adding
   const [extrasConfig, setExtrasConfig] = useState<Record<string, Partial<AgenteNoCarrinho>>>({});

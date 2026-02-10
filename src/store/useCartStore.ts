@@ -595,8 +595,8 @@ export const useCartStore = create<StoreState>((set, get) => ({
     resumo.totalUpgradesMensal =
       resumo.upgradeFlixMensal + resumo.funisExtrasMensal;
 
-    // Central de Inteligência (Business/Scale only) - V0.12
-    if ((nivel === "business" || nivel === "scale") && centralInteligencia.pacoteSelecionado) {
+    // Central de Inteligência V0.13: disponível para todos os usuários
+    if (centralInteligencia.pacoteSelecionado) {
       resumo.centralInteligenciaSetup = centralInteligencia.setupTotal;
       resumo.centralInteligenciaPacote = centralInteligencia.pacoteSelecionado === "pacote_5"
         ? "5 Assistentes"

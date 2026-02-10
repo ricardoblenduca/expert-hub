@@ -18,7 +18,7 @@ export default function ProposalPreview() {
   const [generating, setGenerating] = useState(false);
 
   const resumo = calcularResumo();
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, centralInteligencia, agentes, coprodutor, desconto } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, centralInteligencia, agentes, coprodutor, descontoMensal, descontoSetup } = carrinho;
 
   const modalidadeData = modalidade ? modalidades[modalidade] : null;
   const nivelData = nivel ? niveisMap[nivel] : null;
@@ -510,30 +510,69 @@ export default function ProposalPreview() {
               </div>
             )}
 
-            {/* Central de Inteligência V0.12 */}
+            {/* Central de Inteligência V0.12 (V0.14: detailed info) */}
             {centralInteligencia.pacoteSelecionado && (
               <div className="mb-6 border border-blue-200 bg-blue-50/30 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-3">
+                  <span className="text-2xl">🧠</span>
                   <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blue-600 text-white px-2 py-1 rounded">
                     CENTRAL DE INTELIGENCIA
                   </span>
                 </div>
 
+                <p className="font-kanit text-sm text-blenduca-cinza-medio mb-4">
+                  Assistentes de IA personalizados para automatizar processos e potencializar resultados do seu negocio.
+                </p>
+
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm font-kanit">
-                    <span className="text-blenduca-cinza-medio">Pacote selecionado:</span>
+                    <span className="text-blenduca-cinza-medio">Pacote Base:</span>
                     <span className="font-semibold text-blenduca-grafite">
                       {centralInteligencia.pacoteSelecionado === "pacote_5"
                         ? "5 Assistentes"
                         : "10 Assistentes"}
                     </span>
                   </div>
+                  {centralInteligencia.assistentesExtras > 0 && (
+                    <div className="flex justify-between text-sm font-kanit">
+                      <span className="text-blenduca-cinza-medio">Assistentes Extras:</span>
+                      <span className="font-semibold text-blue-600">
+                        +{centralInteligencia.assistentesExtras} assistentes
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm font-kanit border-t border-blue-200 pt-2 mt-2">
-                    <span className="text-blenduca-cinza-medio">Investimento (Setup):</span>
-                    <span className="font-bold text-blue-600">
-                      {formatCurrency(centralInteligencia.setupTotal)}
+                    <span className="font-semibold text-blenduca-grafite">Total de Assistentes:</span>
+                    <span className="font-bold text-blenduca-grafite">
+                      {resumo.centralInteligenciaQuantidade} assistentes
                     </span>
                   </div>
+                  <div className="flex justify-between text-sm font-kanit">
+                    <span className="text-blenduca-cinza-medio">Investimento (Setup):</span>
+                    <span className="font-bold text-blue-600">
+                      {formatCurrency(resumo.centralInteligenciaSetup)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Features */}
+                <div className="mt-4 pt-4 border-t border-blue-200">
+                  <ul className="space-y-1">
+                    {[
+                      "Assistentes de IA personalizados",
+                      "Integracao com Experience Flix",
+                      "Treinamento incluido",
+                      "Suporte na configuracao",
+                    ].map((rec, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 text-xs font-kanit text-blenduca-cinza-medio"
+                      >
+                        <span className="text-blue-600 shrink-0">&#10003;</span>
+                        {rec}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             )}
@@ -640,8 +679,8 @@ export default function ProposalPreview() {
             <SectionTitle>Investimento</SectionTitle>
             <div className="bg-gray-50 rounded-lg p-5">
               <div className="space-y-2">
-                {/* Setup costs */}
-                {(resumo.totalSetup > 0 || resumo.totalEntrada > 0) && (
+                {/* Setup costs V0.14: now includes detailed breakdown and desconto setup */}
+                {resumo.subtotalSetup > 0 && (
                   <>
                     <h4 className="font-kanit font-semibold text-xs uppercase tracking-wide text-blenduca-cinza-medio mb-2">
                       Investimento Inicial
@@ -656,7 +695,9 @@ export default function ProposalPreview() {
                     )}
                     {resumo.centralInteligenciaSetup > 0 && (
                       <div className="flex justify-between text-sm font-kanit">
-                        <span className="text-blenduca-cinza-medio">Setup Central de Inteligencia ({resumo.centralInteligenciaPacote}):</span>
+                        <span className="text-blenduca-cinza-medio">
+                          Central de Inteligencia ({resumo.centralInteligenciaQuantidade} assistentes):
+                        </span>
                         <span className="font-medium text-blue-600">
                           {formatCurrency(resumo.centralInteligenciaSetup)}
                         </span>
@@ -670,14 +711,46 @@ export default function ProposalPreview() {
                         </span>
                       </div>
                     )}
-                    <div className="border-t border-gray-200 pt-2 mt-2">
-                      <div className="flex justify-between text-sm font-kanit">
-                        <span className="font-semibold text-blenduca-grafite">Total Inicial:</span>
-                        <span className="font-bold text-blenduca-grafite">
-                          {formatCurrency(resumo.totalEntrada + resumo.totalSetup)}
-                        </span>
+
+                    {/* Subtotal and Desconto Setup V0.14 */}
+                    {resumo.valorDescontoSetup > 0 ? (
+                      <>
+                        <div className="border-t border-gray-200 pt-2 mt-2">
+                          <div className="flex justify-between text-sm font-kanit">
+                            <span className="text-blenduca-cinza-medio">Subtotal Inicial:</span>
+                            <span className="font-medium text-blenduca-grafite">
+                              {formatCurrency(resumo.subtotalSetup)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between text-sm font-kanit bg-purple-50 p-2 rounded -mx-2">
+                          <span className="text-purple-600 font-semibold">
+                            Desconto Setup {descontoSetup.tipo === "percentual" ? `(${descontoSetup.valor}%)` : ""}
+                            {resumo.motivoDescontoSetup && ` - ${resumo.motivoDescontoSetup}`}:
+                          </span>
+                          <span className="font-bold text-purple-600">
+                            -{formatCurrency(resumo.valorDescontoSetup)}
+                          </span>
+                        </div>
+                        <div className="border-t border-gray-200 pt-2 mt-2">
+                          <div className="flex justify-between text-sm font-kanit">
+                            <span className="font-semibold text-blenduca-grafite">Total Inicial:</span>
+                            <span className="font-bold text-blenduca-grafite">
+                              {formatCurrency(resumo.totalInicialComDesconto)}
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="border-t border-gray-200 pt-2 mt-2">
+                        <div className="flex justify-between text-sm font-kanit">
+                          <span className="font-semibold text-blenduca-grafite">Total Inicial:</span>
+                          <span className="font-bold text-blenduca-grafite">
+                            {formatCurrency(resumo.subtotalSetup)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    )}
                     <div className="my-4 border-b border-gray-200" />
                   </>
                 )}
@@ -709,12 +782,12 @@ export default function ProposalPreview() {
                   </div>
                 )}
 
-                {/* Subtotal and Desconto */}
-                {resumo.valorDesconto > 0 && (
+                {/* Subtotal and Desconto Mensal V0.14 */}
+                {resumo.valorDescontoMensal > 0 && (
                   <>
                     <div className="border-t border-gray-200 pt-2 mt-2">
                       <div className="flex justify-between text-sm font-kanit">
-                        <span className="text-blenduca-cinza-medio">Subtotal:</span>
+                        <span className="text-blenduca-cinza-medio">Subtotal Mensal:</span>
                         <span className="font-medium text-blenduca-grafite">
                           {formatCurrency(resumo.subtotalMensal)}
                         </span>
@@ -722,11 +795,11 @@ export default function ProposalPreview() {
                     </div>
                     <div className="flex justify-between text-sm font-kanit bg-green-50 p-2 rounded -mx-2">
                       <span className="text-green-600 font-semibold">
-                        Desconto {desconto.tipo === "percentual" ? `(${desconto.valor}%)` : ""}
-                        {desconto.motivo && ` - ${desconto.motivo}`}:
+                        Desconto Mensal {descontoMensal.tipo === "percentual" ? `(${descontoMensal.valor}%)` : ""}
+                        {resumo.motivoDescontoMensal && ` - ${resumo.motivoDescontoMensal}`}:
                       </span>
                       <span className="font-bold text-green-600">
-                        -{formatCurrency(resumo.valorDesconto)}
+                        -{formatCurrency(resumo.valorDescontoMensal)}
                       </span>
                     </div>
                   </>
@@ -756,11 +829,11 @@ export default function ProposalPreview() {
                       </span>
                     </div>
                   )}
-                  {resumo.economiaAnualDesconto > 0 && (
+                  {resumo.economiaAnualDescontoMensal > 0 && (
                     <div className="flex justify-between text-sm font-kanit mt-1">
-                      <span className="text-green-600">Economia Anual (Desconto):</span>
+                      <span className="text-green-600">Economia Anual (Desconto Mensal):</span>
                       <span className="font-bold text-green-600">
-                        {formatCurrency(resumo.economiaAnualDesconto)}
+                        {formatCurrency(resumo.economiaAnualDescontoMensal)}
                       </span>
                     </div>
                   )}

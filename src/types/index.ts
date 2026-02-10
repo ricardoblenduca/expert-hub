@@ -381,7 +381,7 @@ export interface GeniusAIAssistentesConfig {
 }
 
 // ============================================
-// CENTRAL DE INTELIGÊNCIA V0.12
+// CENTRAL DE INTELIGÊNCIA V0.12 (V0.14: added assistentesExtras)
 // ============================================
 
 export type CentralInteligenciaPacoteId = "pacote_5" | "pacote_10" | null;
@@ -397,6 +397,7 @@ export interface CentralInteligenciaPacote {
 
 export interface CentralInteligenciaConfig {
   pacoteSelecionado: CentralInteligenciaPacoteId;
+  assistentesExtras: number; // V0.14: assistentes adicionais (R$ 500 cada)
   setupTotal: number;
 }
 
@@ -454,8 +455,11 @@ export interface CarrinhoState {
   // Co-produtor (Business/Scale only)
   coprodutor: CoProdutorConfig | null;
 
-  // Desconto comercial V0.11
-  desconto: DescontoConfig;
+  // Desconto mensal V0.11 (V0.14: renamed from desconto)
+  descontoMensal: DescontoConfig;
+
+  // Desconto setup V0.14
+  descontoSetup: DescontoConfig;
 
   // Condições
   condicaoPagamento: CondicaoPagamento;
@@ -480,9 +484,11 @@ export interface ResumoCarrinho {
   funisExtrasMensal: number;
   totalUpgradesMensal: number;
 
-  // Central de Inteligência (Business/Scale only) - V0.12
+  // Central de Inteligência V0.14
   centralInteligenciaSetup: number;
   centralInteligenciaPacote: string | null;
+  centralInteligenciaQuantidade: number; // total de assistentes (base + extras)
+  centralInteligenciaExtras: number; // quantidade de assistentes extras
 
   // Agentes AI
   agentesSetup: number;
@@ -491,13 +497,19 @@ export interface ResumoCarrinho {
   // Totais (antes do desconto)
   totalSetup: number;
   totalEntrada: number;
+  subtotalSetup: number; // V0.14: subtotal do investimento inicial antes do desconto
   subtotalMensal: number;
 
-  // Desconto V0.11
-  valorDesconto: number;
-  motivoDesconto: string;
+  // Desconto Setup V0.14
+  valorDescontoSetup: number;
+  motivoDescontoSetup: string;
+
+  // Desconto Mensal V0.11
+  valorDescontoMensal: number;
+  motivoDescontoMensal: string;
 
   // Totais finais (após desconto)
+  totalInicialComDesconto: number; // V0.14
   totalMensal: number;
   totalAnual: number;
 
@@ -506,7 +518,7 @@ export interface ResumoCarrinho {
 
   // Economia
   economia: number;
-  economiaAnualDesconto: number;
+  economiaAnualDescontoMensal: number; // V0.14: renamed
 
   // Sugestão de upgrade
   sugestaoUpgrade?: {

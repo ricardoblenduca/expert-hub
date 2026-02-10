@@ -43,6 +43,7 @@ export default function AgentesSection() {
   const removerAgente = useCartStore((s) => s.removerAgente);
   const atualizarAgente = useCartStore((s) => s.atualizarAgente);
   const setCentralInteligenciaPacote = useCartStore((s) => s.setCentralInteligenciaPacote);
+  const setCentralInteligenciaExtras = useCartStore((s) => s.setCentralInteligenciaExtras); // V0.14
   const setStep = useCartStore((s) => s.setStep);
 
   const { modalidade, nivel, agentes, tipoProposta, tecnologiaAvulsa, centralInteligencia } = carrinho;
@@ -245,10 +246,11 @@ export default function AgentesSection() {
             })}
           </div>
 
-          {/* Resumo se selecionado */}
+          {/* Resumo se selecionado + Extras V0.14 */}
           {centralInteligencia.pacoteSelecionado && (
             <div className="mt-4 bg-white rounded-lg p-4 border-2 border-blue-200 animate-fade-in-up">
-              <div className="flex items-center justify-between">
+              {/* Pacote base */}
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <span>📊</span>
                   <span className="font-kanit font-semibold text-sm text-blue-600">
@@ -258,9 +260,74 @@ export default function AgentesSection() {
                     selecionados
                   </span>
                 </div>
-                <span className="font-kanit font-bold text-lg text-blenduca-grafite">
-                  Setup: {formatCurrency(centralInteligencia.setupTotal)}
-                </span>
+              </div>
+
+              {/* Assistentes Extras V0.14 */}
+              <div className="border-t border-gray-100 pt-4 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <span className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                      Assistentes Extras
+                    </span>
+                    <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                      +{formatCurrency(500)} por assistente adicional (max 20)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() =>
+                        setCentralInteligenciaExtras(
+                          Math.max(0, centralInteligencia.assistentesExtras - 1)
+                        )
+                      }
+                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 font-kanit font-bold text-blenduca-grafite transition-colors"
+                    >
+                      -
+                    </button>
+                    <span className="w-10 text-center font-kanit font-bold text-lg text-blenduca-grafite">
+                      {centralInteligencia.assistentesExtras}
+                    </span>
+                    <button
+                      onClick={() =>
+                        setCentralInteligenciaExtras(
+                          Math.min(20, centralInteligencia.assistentesExtras + 1)
+                        )
+                      }
+                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 font-kanit font-bold text-blenduca-grafite transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                {centralInteligencia.assistentesExtras > 0 && (
+                  <p className="font-kanit text-xs text-blue-600">
+                    +{centralInteligencia.assistentesExtras} assistentes = +{formatCurrency(centralInteligencia.assistentesExtras * 500)}
+                  </p>
+                )}
+              </div>
+
+              {/* Total */}
+              <div className="border-t border-gray-100 pt-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-kanit text-xs text-blenduca-cinza-medio">
+                      Total de Assistentes:
+                    </span>
+                    <p className="font-kanit font-bold text-lg text-blenduca-grafite">
+                      {(centralInteligencia.pacoteSelecionado === "pacote_5" ? 5 : 10) +
+                        centralInteligencia.assistentesExtras}{" "}
+                      assistentes
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-kanit text-xs text-blenduca-cinza-medio">
+                      Setup Total:
+                    </span>
+                    <p className="font-kanit font-bold text-xl text-blue-600">
+                      {formatCurrency(centralInteligencia.setupTotal)}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           )}

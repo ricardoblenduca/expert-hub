@@ -25,7 +25,7 @@ export async function generateProposalPDF(proposta: Proposta) {
   let y = 0;
 
   const { carrinho, resumo, cliente, consultor } = proposta;
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, centralInteligencia, agentes, coprodutor, desconto } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, centralInteligencia, agentes, coprodutor, descontoMensal, descontoSetup } = carrinho;
 
   // Helper function to strip emojis for PDF (jsPDF doesn't render emojis well)
   function stripEmoji(text: string): string {
@@ -427,9 +427,9 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 4;
   }
 
-  // Central de Inteligencia V0.12
+  // Central de Inteligencia V0.12 (V0.14: detailed info with extras)
   if (centralInteligencia?.pacoteSelecionado) {
-    checkPageBreak(25);
+    checkPageBreak(40);
     doc.setFillColor(240, 248, 255); // Light blue
     doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
     doc.setFontSize(10);
@@ -443,12 +443,35 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 14;
     sectionNum++;
 
+    bodyText("Assistentes de IA personalizados para automatizar processos e potencializar resultados do seu negocio.", false, 3);
+    y += 2;
+
+    const baseAssistentes = centralInteligencia.pacoteSelecionado === "pacote_5" ? 5 : 10;
     const pacoteNome = centralInteligencia.pacoteSelecionado === "pacote_5"
       ? "5 Assistentes"
       : "10 Assistentes";
 
-    bodyText(`Pacote selecionado: ${pacoteNome}`, false, 3);
-    bodyText(`Investimento (Setup): ${formatCurrency(centralInteligencia.setupTotal)}`, true, 3);
+    bodyText(`Pacote Base: ${pacoteNome}`, false, 3);
+
+    if (centralInteligencia.assistentesExtras > 0) {
+      bodyText(`Assistentes Extras: +${centralInteligencia.assistentesExtras} assistentes`, false, 3);
+    }
+
+    const totalAssistentes = baseAssistentes + centralInteligencia.assistentesExtras;
+    bodyText(`Total de Assistentes: ${totalAssistentes}`, true, 3);
+    bodyText(`Investimento (Setup): ${formatCurrency(resumo.centralInteligenciaSetup)}`, true, 3);
+    y += 2;
+
+    // Features
+    const features = [
+      "Assistentes de IA personalizados",
+      "Integracao com Experience Flix",
+      "Treinamento incluido",
+      "Suporte na configuracao",
+    ];
+    features.forEach((feat) => {
+      bulletPoint(feat, 6, COLORS.azul);
+    });
     y += 4;
   }
 
@@ -550,15 +573,16 @@ export async function generateProposalPDF(proposta: Proposta) {
   y += 2;
   sectionTitle("INVESTIMENTO");
 
-  // Calculate dynamic box height
+  // Calculate dynamic box height V0.14
   let boxHeight = 20;
-  if (resumo.totalEntrada > 0 || resumo.totalSetup > 0) boxHeight += 24;
+  if (resumo.subtotalSetup > 0) boxHeight += 24;
   if (resumo.centralInteligenciaSetup > 0) boxHeight += 6;
+  if (resumo.valorDescontoSetup > 0) boxHeight += 12; // V0.14: desconto setup
   if (resumo.totalUpgradesMensal > 0) boxHeight += 6;
   if (resumo.agentesMensal > 0) boxHeight += 6;
-  if (resumo.valorDesconto > 0) boxHeight += 14;
+  if (resumo.valorDescontoMensal > 0) boxHeight += 14; // V0.14: renamed from valorDesconto
   if (resumo.economia > 0) boxHeight += 6;
-  if (resumo.economiaAnualDesconto > 0) boxHeight += 6;
+  if (resumo.economiaAnualDescontoMensal > 0) boxHeight += 6; // V0.14: renamed
 
   checkPageBreak(boxHeight + 5);
   const boxY = y - 2;
@@ -570,8 +594,8 @@ export async function generateProposalPDF(proposta: Proposta) {
   const boxMargin = margin + 5;
   const boxRight = pageWidth - margin - 5;
 
-  // Initial investment
-  if (resumo.totalEntrada > 0 || resumo.totalSetup > 0) {
+  // Initial investment V0.14: includes desconto setup
+  if (resumo.subtotalSetup > 0) {
     doc.setFontSize(8);
     doc.setTextColor(...COLORS.cinza);
     doc.setFont("helvetica", "bold");
@@ -595,7 +619,7 @@ export async function generateProposalPDF(proposta: Proposta) {
       doc.setFontSize(9);
       doc.setTextColor(...COLORS.cinza);
       doc.setFont("helvetica", "normal");
-      doc.text(`Setup Central de Inteligencia (${resumo.centralInteligenciaPacote}):`, boxMargin, y + 4);
+      doc.text(`Central de Inteligencia (${resumo.centralInteligenciaQuantidade} assistentes):`, boxMargin, y + 4);
       doc.setTextColor(...COLORS.azul);
       doc.setFont("helvetica", "bold");
       doc.text(formatCurrency(resumo.centralInteligenciaSetup), boxRight, y + 4, {
@@ -617,6 +641,45 @@ export async function generateProposalPDF(proposta: Proposta) {
       y += 6;
     }
 
+    // Desconto Setup V0.14
+    if (resumo.valorDescontoSetup > 0) {
+      // Subtotal line
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.line(boxMargin, y + 2, boxRight, y + 2);
+      y += 5;
+
+      doc.setFontSize(9);
+      doc.setTextColor(...COLORS.cinza);
+      doc.setFont("helvetica", "normal");
+      doc.text("Subtotal Inicial:", boxMargin, y + 4);
+      doc.setTextColor(...COLORS.grafite);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatCurrency(resumo.subtotalSetup), boxRight, y + 4, {
+        align: "right",
+      });
+      y += 6;
+
+      // Desconto Setup
+      let descontoSetupLabel = "Desconto Setup";
+      if (descontoSetup.tipo === "percentual") {
+        descontoSetupLabel += ` (${descontoSetup.valor}%)`;
+      }
+      if (resumo.motivoDescontoSetup) {
+        descontoSetupLabel += ` - ${resumo.motivoDescontoSetup}`;
+      }
+      descontoSetupLabel += ":";
+
+      doc.setFontSize(9);
+      doc.setTextColor(128, 0, 128); // Purple
+      doc.setFont("helvetica", "bold");
+      doc.text(descontoSetupLabel, boxMargin, y + 4);
+      doc.text(`-${formatCurrency(resumo.valorDescontoSetup)}`, boxRight, y + 4, {
+        align: "right",
+      });
+      y += 6;
+    }
+
     // Total initial
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
@@ -626,7 +689,8 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
     doc.text("Total Inicial:", boxMargin, y + 4);
-    doc.text(formatCurrency(resumo.totalEntrada + resumo.totalSetup), boxRight, y + 4, {
+    const totalInicial = resumo.valorDescontoSetup > 0 ? resumo.totalInicialComDesconto : resumo.subtotalSetup;
+    doc.text(formatCurrency(totalInicial), boxRight, y + 4, {
       align: "right",
     });
     y += 8;
@@ -676,8 +740,8 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 6;
   }
 
-  // Subtotal and Desconto V0.11
-  if (resumo.valorDesconto > 0) {
+  // Subtotal and Desconto Mensal V0.14 (renamed from Desconto V0.11)
+  if (resumo.valorDescontoMensal > 0) {
     // Subtotal line
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.3);
@@ -687,7 +751,7 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.setFontSize(9);
     doc.setTextColor(...COLORS.cinza);
     doc.setFont("helvetica", "normal");
-    doc.text("Subtotal:", boxMargin, y + 4);
+    doc.text("Subtotal Mensal:", boxMargin, y + 4);
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
     doc.text(formatCurrency(resumo.subtotalMensal), boxRight, y + 4, {
@@ -695,13 +759,13 @@ export async function generateProposalPDF(proposta: Proposta) {
     });
     y += 6;
 
-    // Desconto
-    let descontoLabel = "Desconto";
-    if (desconto.tipo === "percentual") {
-      descontoLabel += ` (${desconto.valor}%)`;
+    // Desconto Mensal
+    let descontoLabel = "Desconto Mensal";
+    if (descontoMensal.tipo === "percentual") {
+      descontoLabel += ` (${descontoMensal.valor}%)`;
     }
-    if (desconto.motivo) {
-      descontoLabel += ` - ${desconto.motivo}`;
+    if (resumo.motivoDescontoMensal) {
+      descontoLabel += ` - ${resumo.motivoDescontoMensal}`;
     }
     descontoLabel += ":";
 
@@ -709,7 +773,7 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.setTextColor(...COLORS.verde);
     doc.setFont("helvetica", "bold");
     doc.text(descontoLabel, boxMargin, y + 4);
-    doc.text(`-${formatCurrency(resumo.valorDesconto)}`, boxRight, y + 4, {
+    doc.text(`-${formatCurrency(resumo.valorDescontoMensal)}`, boxRight, y + 4, {
       align: "right",
     });
     y += 6;
@@ -752,11 +816,11 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 6;
   }
 
-  if (resumo.economiaAnualDesconto > 0) {
+  if (resumo.economiaAnualDescontoMensal > 0) {
     doc.setTextColor(...COLORS.verde);
     doc.setFont("helvetica", "bold");
-    doc.text("Economia Anual (Desconto):", boxMargin, y + 4);
-    doc.text(formatCurrency(resumo.economiaAnualDesconto), boxRight, y + 4, {
+    doc.text("Economia Anual (Desconto Mensal):", boxMargin, y + 4);
+    doc.text(formatCurrency(resumo.economiaAnualDescontoMensal), boxRight, y + 4, {
       align: "right",
     });
     y += 6;

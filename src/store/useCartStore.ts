@@ -81,15 +81,23 @@ interface StoreState {
   // Co-produtor (Business/Scale only)
   setCoprodutor: (config: CoProdutorConfig | null) => void;
 
-  // Central de Inteligência (Business/Scale only) - V0.12
+  // Central de Inteligência - V0.12 (V0.14: added assistentesExtras)
   setCentralInteligenciaPacote: (pacoteId: CentralInteligenciaPacoteId) => void;
+  setCentralInteligenciaExtras: (quantidade: number) => void; // V0.14
 
-  // Desconto comercial V0.11
-  setDescontoAtivo: (ativo: boolean) => void;
-  setDescontoTipo: (tipo: TipoDesconto) => void;
-  setDescontoValor: (valor: number) => void;
-  setDescontoMotivo: (motivo: string) => void;
-  resetDesconto: () => void;
+  // Desconto mensal V0.11 (V0.14: renamed from desconto)
+  setDescontoMensalAtivo: (ativo: boolean) => void;
+  setDescontoMensalTipo: (tipo: TipoDesconto) => void;
+  setDescontoMensalValor: (valor: number) => void;
+  setDescontoMensalMotivo: (motivo: string) => void;
+  resetDescontoMensal: () => void;
+
+  // Desconto setup V0.14
+  setDescontoSetupAtivo: (ativo: boolean) => void;
+  setDescontoSetupTipo: (tipo: TipoDesconto) => void;
+  setDescontoSetupValor: (valor: number) => void;
+  setDescontoSetupMotivo: (motivo: string) => void;
+  resetDescontoSetup: () => void;
 
   // Condicoes
   setCondicaoPagamento: (condicao: CondicaoPagamento) => void;
@@ -146,6 +154,7 @@ const initialDesconto: DescontoConfig = {
 
 const initialCentralInteligencia = {
   pacoteSelecionado: null as CentralInteligenciaPacoteId,
+  assistentesExtras: 0, // V0.14: assistentes adicionais
   setupTotal: 0,
 };
 
@@ -159,7 +168,8 @@ const initialCarrinho: CarrinhoState = {
   centralInteligencia: initialCentralInteligencia,
   agentes: [],
   coprodutor: null,
-  desconto: initialDesconto,
+  descontoMensal: initialDesconto, // V0.14: renamed from desconto
+  descontoSetup: initialDesconto, // V0.14: novo desconto para setup
   condicaoPagamento: "padrao",
   revenueShareObservacoes: "",
 };
@@ -417,35 +427,68 @@ export const useCartStore = create<StoreState>((set, get) => ({
       },
     })),
 
-  // Central de Inteligência (Business/Scale only) - V0.12
+  // Central de Inteligência - V0.12 (V0.14: added assistentesExtras)
   setCentralInteligenciaPacote: (pacoteId) =>
     set((state) => {
-      // Calculate setup based on package
-      let setupTotal = 0;
+      // Calculate setup based on package + extras
+      let baseSetup = 0;
       if (pacoteId === "pacote_5") {
-        setupTotal = 2500;
+        baseSetup = 2500;
       } else if (pacoteId === "pacote_10") {
-        setupTotal = 5000;
+        baseSetup = 5000;
       }
+
+      // V0.14: Add extras setup (R$ 500 each)
+      const extrasSetup = state.carrinho.centralInteligencia.assistentesExtras * 500;
+      const setupTotal = baseSetup + extrasSetup;
 
       return {
         carrinho: {
           ...state.carrinho,
           centralInteligencia: {
             pacoteSelecionado: pacoteId,
+            assistentesExtras: pacoteId ? state.carrinho.centralInteligencia.assistentesExtras : 0,
             setupTotal,
           },
         },
       };
     }),
 
-  // Desconto comercial V0.11
-  setDescontoAtivo: (ativo) =>
+  // V0.14: Assistentes extras para Central de Inteligência
+  setCentralInteligenciaExtras: (quantidade) =>
+    set((state) => {
+      // Limit to 0-20 extras
+      const extras = Math.max(0, Math.min(20, quantidade));
+
+      // Recalculate setup
+      let baseSetup = 0;
+      if (state.carrinho.centralInteligencia.pacoteSelecionado === "pacote_5") {
+        baseSetup = 2500;
+      } else if (state.carrinho.centralInteligencia.pacoteSelecionado === "pacote_10") {
+        baseSetup = 5000;
+      }
+
+      const setupTotal = baseSetup + (extras * 500);
+
+      return {
+        carrinho: {
+          ...state.carrinho,
+          centralInteligencia: {
+            ...state.carrinho.centralInteligencia,
+            assistentesExtras: extras,
+            setupTotal,
+          },
+        },
+      };
+    }),
+
+  // Desconto mensal V0.11 (V0.14: renamed from desconto)
+  setDescontoMensalAtivo: (ativo) =>
     set((state) => ({
       carrinho: {
         ...state.carrinho,
-        desconto: {
-          ...state.carrinho.desconto,
+        descontoMensal: {
+          ...state.carrinho.descontoMensal,
           ativo,
           // Reset values when deactivating
           ...(ativo ? {} : { valor: 0, motivo: "" }),
@@ -453,45 +496,101 @@ export const useCartStore = create<StoreState>((set, get) => ({
       },
     })),
 
-  setDescontoTipo: (tipo) =>
+  setDescontoMensalTipo: (tipo) =>
     set((state) => ({
       carrinho: {
         ...state.carrinho,
-        desconto: {
-          ...state.carrinho.desconto,
+        descontoMensal: {
+          ...state.carrinho.descontoMensal,
           tipo,
           valor: 0, // Reset value when changing type
         },
       },
     })),
 
-  setDescontoValor: (valor) =>
+  setDescontoMensalValor: (valor) =>
     set((state) => ({
       carrinho: {
         ...state.carrinho,
-        desconto: {
-          ...state.carrinho.desconto,
+        descontoMensal: {
+          ...state.carrinho.descontoMensal,
           valor: Math.max(0, valor),
         },
       },
     })),
 
-  setDescontoMotivo: (motivo) =>
+  setDescontoMensalMotivo: (motivo) =>
     set((state) => ({
       carrinho: {
         ...state.carrinho,
-        desconto: {
-          ...state.carrinho.desconto,
+        descontoMensal: {
+          ...state.carrinho.descontoMensal,
           motivo,
         },
       },
     })),
 
-  resetDesconto: () =>
+  resetDescontoMensal: () =>
     set((state) => ({
       carrinho: {
         ...state.carrinho,
-        desconto: initialDesconto,
+        descontoMensal: initialDesconto,
+      },
+    })),
+
+  // Desconto setup V0.14
+  setDescontoSetupAtivo: (ativo) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        descontoSetup: {
+          ...state.carrinho.descontoSetup,
+          ativo,
+          // Reset values when deactivating
+          ...(ativo ? {} : { valor: 0, motivo: "" }),
+        },
+      },
+    })),
+
+  setDescontoSetupTipo: (tipo) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        descontoSetup: {
+          ...state.carrinho.descontoSetup,
+          tipo,
+          valor: 0, // Reset value when changing type
+        },
+      },
+    })),
+
+  setDescontoSetupValor: (valor) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        descontoSetup: {
+          ...state.carrinho.descontoSetup,
+          valor: Math.max(0, valor),
+        },
+      },
+    })),
+
+  setDescontoSetupMotivo: (motivo) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        descontoSetup: {
+          ...state.carrinho.descontoSetup,
+          motivo,
+        },
+      },
+    })),
+
+  resetDescontoSetup: () =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        descontoSetup: initialDesconto,
       },
     })),
 
@@ -524,7 +623,6 @@ export const useCartStore = create<StoreState>((set, get) => ({
   calcularResumo: () => {
     const { carrinho } = get();
     const {
-      tipoProposta,
       modalidade,
       nivel,
       tecnologiaAvulsa,
@@ -533,10 +631,11 @@ export const useCartStore = create<StoreState>((set, get) => ({
       centralInteligencia,
       agentes,
       coprodutor,
-      desconto,
+      descontoMensal,
+      descontoSetup,
     } = carrinho;
 
-    // Default values
+    // Default values (V0.14: added new fields)
     const resumo: ResumoCarrinho = {
       pacoteEntrada: 0,
       pacoteMensal: 0,
@@ -549,18 +648,24 @@ export const useCartStore = create<StoreState>((set, get) => ({
       totalUpgradesMensal: 0,
       centralInteligenciaSetup: 0,
       centralInteligenciaPacote: null,
+      centralInteligenciaQuantidade: 0, // V0.14
+      centralInteligenciaExtras: 0, // V0.14
       agentesSetup: 0,
       agentesMensal: 0,
       coprodutorNome: "",
       totalSetup: 0,
       totalEntrada: 0,
+      subtotalSetup: 0, // V0.14
       subtotalMensal: 0,
-      valorDesconto: 0,
-      motivoDesconto: "",
+      valorDescontoSetup: 0, // V0.14
+      motivoDescontoSetup: "", // V0.14
+      valorDescontoMensal: 0, // V0.14: renamed from valorDesconto
+      motivoDescontoMensal: "", // V0.14: renamed from motivoDesconto
+      totalInicialComDesconto: 0, // V0.14
       totalMensal: 0,
       totalAnual: 0,
       economia: 0,
-      economiaAnualDesconto: 0,
+      economiaAnualDescontoMensal: 0, // V0.14: renamed from economiaAnualDesconto
     };
 
     // Pacote base (programa)
@@ -595,12 +700,15 @@ export const useCartStore = create<StoreState>((set, get) => ({
     resumo.totalUpgradesMensal =
       resumo.upgradeFlixMensal + resumo.funisExtrasMensal;
 
-    // Central de Inteligência V0.13: disponível para todos os usuários
+    // Central de Inteligência V0.13: disponível para todos os usuários (V0.14: detailed info)
     if (centralInteligencia.pacoteSelecionado) {
       resumo.centralInteligenciaSetup = centralInteligencia.setupTotal;
+      const baseAssistentes = centralInteligencia.pacoteSelecionado === "pacote_5" ? 5 : 10;
       resumo.centralInteligenciaPacote = centralInteligencia.pacoteSelecionado === "pacote_5"
         ? "5 Assistentes"
         : "10 Assistentes";
+      resumo.centralInteligenciaExtras = centralInteligencia.assistentesExtras;
+      resumo.centralInteligenciaQuantidade = baseAssistentes + centralInteligencia.assistentesExtras;
     }
 
     // Tecnologia avulsa
@@ -621,6 +729,7 @@ export const useCartStore = create<StoreState>((set, get) => ({
     // Totais (antes do desconto)
     resumo.totalSetup = resumo.agentesSetup + resumo.centralInteligenciaSetup;
     resumo.totalEntrada = resumo.pacoteEntrada + resumo.techAvulsaEntrada;
+    resumo.subtotalSetup = resumo.totalSetup + resumo.totalEntrada; // V0.14: investimento inicial antes do desconto
     resumo.subtotalMensal =
       resumo.pacoteMensal +
       resumo.totalUpgradesMensal +
@@ -632,22 +741,36 @@ export const useCartStore = create<StoreState>((set, get) => ({
       resumo.coprodutorNome = coprodutor.nome;
     }
 
-    // Desconto V0.11
-    if (desconto.ativo && desconto.valor > 0) {
-      if (desconto.tipo === "percentual") {
+    // Desconto Setup V0.14
+    if (descontoSetup.ativo && descontoSetup.valor > 0) {
+      if (descontoSetup.tipo === "percentual") {
         // Desconto percentual (limitado a 100%)
-        const percentual = Math.min(desconto.valor, 100);
-        resumo.valorDesconto = Math.round((resumo.subtotalMensal * percentual) / 100);
+        const percentual = Math.min(descontoSetup.valor, 100);
+        resumo.valorDescontoSetup = Math.round((resumo.subtotalSetup * percentual) / 100);
       } else {
         // Desconto em valor fixo (limitado ao subtotal)
-        resumo.valorDesconto = Math.min(desconto.valor, resumo.subtotalMensal);
+        resumo.valorDescontoSetup = Math.min(descontoSetup.valor, resumo.subtotalSetup);
       }
-      resumo.motivoDesconto = desconto.motivo;
-      resumo.economiaAnualDesconto = resumo.valorDesconto * 12;
+      resumo.motivoDescontoSetup = descontoSetup.motivo;
+    }
+
+    // Desconto Mensal V0.11 (V0.14: renamed)
+    if (descontoMensal.ativo && descontoMensal.valor > 0) {
+      if (descontoMensal.tipo === "percentual") {
+        // Desconto percentual (limitado a 100%)
+        const percentual = Math.min(descontoMensal.valor, 100);
+        resumo.valorDescontoMensal = Math.round((resumo.subtotalMensal * percentual) / 100);
+      } else {
+        // Desconto em valor fixo (limitado ao subtotal)
+        resumo.valorDescontoMensal = Math.min(descontoMensal.valor, resumo.subtotalMensal);
+      }
+      resumo.motivoDescontoMensal = descontoMensal.motivo;
+      resumo.economiaAnualDescontoMensal = resumo.valorDescontoMensal * 12;
     }
 
     // Total final (após desconto)
-    resumo.totalMensal = resumo.subtotalMensal - resumo.valorDesconto;
+    resumo.totalInicialComDesconto = resumo.subtotalSetup - resumo.valorDescontoSetup; // V0.14
+    resumo.totalMensal = resumo.subtotalMensal - resumo.valorDescontoMensal;
     resumo.totalAnual = resumo.totalMensal * 12;
 
     // Economia (tecnologia inclusa no Pacote Completo)
@@ -744,6 +867,8 @@ Economia: R$ ${economia.toLocaleString("pt-BR")}/mês`,
       carrinho: {
         ...initialCarrinho,
         centralInteligencia: { ...initialCentralInteligencia },
+        descontoMensal: { ...initialDesconto },
+        descontoSetup: { ...initialDesconto },
       },
       dadosCliente: initialDadosCliente,
     }),

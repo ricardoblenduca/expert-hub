@@ -47,40 +47,31 @@ export async function generateProposalPDF(proposta: Proposta) {
     }
   }
 
+  // V0.16: Clean footer with only 2 lines
   function addFooter() {
-    doc.setDrawColor(...COLORS.cinzaClaro);
-    doc.line(margin, pageHeight - 28, pageWidth - margin, pageHeight - 28);
+    doc.setDrawColor(...COLORS.vermelho);
+    doc.setLineWidth(0.8);
+    doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
 
-    // Main title
-    doc.setFontSize(8);
+    // Line 1: Main phrase
+    doc.setFontSize(10);
     doc.setTextColor(...COLORS.vermelho);
     doc.setFont("helvetica", "bold");
     doc.text(
-      "Blenduca - Experts em Negocios de Conhecimento",
+      "Somos a Blenduca, Experts em Negocios de Conhecimento!",
       pageWidth / 2,
-      pageHeight - 23,
+      pageHeight - 14,
       { align: "center" }
     );
 
-    // Institutional phrase
-    doc.setFontSize(7);
-    doc.setTextColor(...COLORS.grafite);
-    doc.setFont("helvetica", "italic");
+    // Line 2: Hashtag
+    doc.setFontSize(10);
+    doc.setTextColor(...COLORS.vermelho);
+    doc.setFont("helvetica", "bold");
     doc.text(
-      "Somos a Blenduca! Experts em negocios de conhecimento! #OMelhorDeCadaExpert",
+      "#OMelhorDeCadaExpert",
       pageWidth / 2,
-      pageHeight - 17,
-      { align: "center" }
-    );
-
-    // Contact info
-    doc.setFontSize(7);
-    doc.setTextColor(...COLORS.cinza);
-    doc.setFont("helvetica", "normal");
-    doc.text(
-      "blenduca.com.br | comercial@blenduca.com.br",
-      pageWidth / 2,
-      pageHeight - 11,
+      pageHeight - 8,
       { align: "center" }
     );
   }
@@ -569,21 +560,20 @@ export async function generateProposalPDF(proposta: Proposta) {
     });
   }
 
-  // ========= INVESTIMENTO =========
+  // ========= INVESTIMENTO - V0.16: Compact Layout =========
   y += 2;
   sectionTitle("INVESTIMENTO");
 
-  // Calculate dynamic box height V0.14
-  let boxHeight = 20;
-  if (resumo.subtotalSetup > 0) boxHeight += 24;
-  if (resumo.centralInteligenciaSetup > 0) boxHeight += 6;
-  if (resumo.valorDescontoSetup > 0) boxHeight += 12; // V0.14: desconto setup
-  if (resumo.totalUpgradesMensal > 0) boxHeight += 6;
-  if (resumo.agentesMensal > 0) boxHeight += 6;
-  if (resumo.valorDescontoMensal > 0) boxHeight += 14; // V0.14: renamed from valorDesconto
-  if (resumo.economia > 0) boxHeight += 6;
-  if (resumo.economiaAnualDescontoMensal > 0) boxHeight += 6; // V0.14: renamed
-  if (resumo.economiaAnualTotal > 0) boxHeight += 8; // V0.15: economia total anual
+  // V0.16: Calculate compact box height (reduced spacing)
+  let boxHeight = 16; // Reduced base
+  if (resumo.subtotalSetup > 0) boxHeight += 18; // Reduced from 24
+  if (resumo.centralInteligenciaSetup > 0) boxHeight += 5; // Reduced from 6
+  if (resumo.valorDescontoSetup > 0) boxHeight += 10; // Reduced from 12
+  if (resumo.totalUpgradesMensal > 0) boxHeight += 5;
+  if (resumo.agentesMensal > 0) boxHeight += 5;
+  if (resumo.valorDescontoMensal > 0) boxHeight += 10; // Reduced from 14
+  if (resumo.economia > 0) boxHeight += 5;
+  if (resumo.economiaAnualTotal > 0) boxHeight += 10; // V0.16: economia total with details
 
   checkPageBreak(boxHeight + 5);
   const boxY = y - 2;
@@ -592,255 +582,214 @@ export async function generateProposalPDF(proposta: Proposta) {
   doc.setDrawColor(...COLORS.cinzaClaro);
   doc.roundedRect(margin, boxY, contentWidth, boxHeight, 2, 2, "S");
 
-  const boxMargin = margin + 5;
-  const boxRight = pageWidth - margin - 5;
+  const boxMargin = margin + 4; // Reduced margin
+  const boxRight = pageWidth - margin - 4;
 
-  // Initial investment V0.14: includes desconto setup
+  // Initial investment V0.16: Compact
   if (resumo.subtotalSetup > 0) {
-    doc.setFontSize(8);
+    doc.setFontSize(7); // Reduced from 8
     doc.setTextColor(...COLORS.cinza);
     doc.setFont("helvetica", "bold");
-    doc.text("INVESTIMENTO INICIAL", boxMargin, y + 4);
-    y += 7;
+    doc.text("INVESTIMENTO INICIAL", boxMargin, y + 3);
+    y += 5; // Reduced from 7
 
     if (resumo.totalEntrada > 0) {
-      doc.setFontSize(9);
+      doc.setFontSize(8); // Reduced from 9
       doc.setTextColor(...COLORS.cinza);
       doc.setFont("helvetica", "normal");
-      doc.text("Taxa de Entrada:", boxMargin, y + 4);
+      doc.text("Taxa de Entrada:", boxMargin, y + 3);
       doc.setTextColor(...COLORS.grafite);
       doc.setFont("helvetica", "bold");
-      doc.text(formatCurrency(resumo.totalEntrada), boxRight, y + 4, {
-        align: "right",
-      });
-      y += 6;
+      doc.text(formatCurrency(resumo.totalEntrada), boxRight, y + 3, { align: "right" });
+      y += 5;
     }
 
     if (resumo.centralInteligenciaSetup > 0) {
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setTextColor(...COLORS.cinza);
       doc.setFont("helvetica", "normal");
-      doc.text(`Central de Inteligencia (${resumo.centralInteligenciaQuantidade} assistentes):`, boxMargin, y + 4);
+      doc.text(`Central Inteligencia (${resumo.centralInteligenciaQuantidade}):`, boxMargin, y + 3);
       doc.setTextColor(...COLORS.azul);
       doc.setFont("helvetica", "bold");
-      doc.text(formatCurrency(resumo.centralInteligenciaSetup), boxRight, y + 4, {
-        align: "right",
-      });
-      y += 6;
+      doc.text(formatCurrency(resumo.centralInteligenciaSetup), boxRight, y + 3, { align: "right" });
+      y += 5;
     }
 
     if (resumo.agentesSetup > 0) {
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setTextColor(...COLORS.cinza);
       doc.setFont("helvetica", "normal");
-      doc.text("Setup Agentes A.I:", boxMargin, y + 4);
+      doc.text("Setup Agentes A.I:", boxMargin, y + 3);
       doc.setTextColor(...COLORS.grafite);
       doc.setFont("helvetica", "bold");
-      doc.text(formatCurrency(resumo.agentesSetup), boxRight, y + 4, {
-        align: "right",
-      });
-      y += 6;
+      doc.text(formatCurrency(resumo.agentesSetup), boxRight, y + 3, { align: "right" });
+      y += 5;
     }
 
-    // Desconto Setup V0.14
+    // Desconto Setup V0.16: Compact
     if (resumo.valorDescontoSetup > 0) {
-      // Subtotal line
       doc.setDrawColor(200, 200, 200);
-      doc.setLineWidth(0.3);
-      doc.line(boxMargin, y + 2, boxRight, y + 2);
-      y += 5;
+      doc.setLineWidth(0.2);
+      doc.line(boxMargin, y + 1, boxRight, y + 1);
+      y += 3;
 
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       doc.setTextColor(...COLORS.cinza);
       doc.setFont("helvetica", "normal");
-      doc.text("Subtotal Inicial:", boxMargin, y + 4);
+      doc.text("Subtotal:", boxMargin, y + 3);
       doc.setTextColor(...COLORS.grafite);
       doc.setFont("helvetica", "bold");
-      doc.text(formatCurrency(resumo.subtotalSetup), boxRight, y + 4, {
-        align: "right",
-      });
-      y += 6;
+      doc.text(formatCurrency(resumo.subtotalSetup), boxRight, y + 3, { align: "right" });
+      y += 5;
 
-      // Desconto Setup
-      let descontoSetupLabel = "Desconto Setup";
-      if (descontoSetup.tipo === "percentual") {
-        descontoSetupLabel += ` (${descontoSetup.valor}%)`;
-      }
-      if (resumo.motivoDescontoSetup) {
-        descontoSetupLabel += ` - ${resumo.motivoDescontoSetup}`;
-      }
-      descontoSetupLabel += ":";
+      // Desconto Setup label
+      let descontoSetupLabel = "Desc. Setup";
+      if (descontoSetup.tipo === "percentual") descontoSetupLabel += ` (${descontoSetup.valor}%)`;
+      if (resumo.motivoDescontoSetup) descontoSetupLabel += `: ${resumo.motivoDescontoSetup}`;
 
-      doc.setFontSize(9);
-      doc.setTextColor(128, 0, 128); // Purple
+      doc.setFontSize(8);
+      doc.setTextColor(128, 0, 128);
       doc.setFont("helvetica", "bold");
-      doc.text(descontoSetupLabel, boxMargin, y + 4);
-      doc.text(`-${formatCurrency(resumo.valorDescontoSetup)}`, boxRight, y + 4, {
-        align: "right",
-      });
-      y += 6;
+      doc.text(descontoSetupLabel, boxMargin, y + 3);
+      doc.text(`-${formatCurrency(resumo.valorDescontoSetup)}`, boxRight, y + 3, { align: "right" });
+      y += 5;
     }
 
     // Total initial
     doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
-    doc.line(boxMargin, y + 2, boxRight, y + 2);
-    y += 5;
+    doc.setLineWidth(0.2);
+    doc.line(boxMargin, y + 1, boxRight, y + 1);
+    y += 3;
 
+    doc.setFontSize(9);
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
-    doc.text("Total Inicial:", boxMargin, y + 4);
+    doc.text("Total Inicial:", boxMargin, y + 3);
     const totalInicial = resumo.valorDescontoSetup > 0 ? resumo.totalInicialComDesconto : resumo.subtotalSetup;
-    doc.text(formatCurrency(totalInicial), boxRight, y + 4, {
-      align: "right",
-    });
-    y += 8;
+    doc.text(formatCurrency(totalInicial), boxRight, y + 3, { align: "right" });
+    y += 6;
   }
 
-  // Monthly investment
+  // Monthly investment V0.16: Compact
+  doc.setFontSize(7);
+  doc.setTextColor(...COLORS.cinza);
+  doc.setFont("helvetica", "bold");
+  doc.text("INVESTIMENTO MENSAL", boxMargin, y + 3);
+  y += 5;
+
   doc.setFontSize(8);
   doc.setTextColor(...COLORS.cinza);
-  doc.setFont("helvetica", "bold");
-  doc.text("INVESTIMENTO MENSAL", boxMargin, y + 4);
-  y += 7;
-
-  doc.setFontSize(9);
-  doc.setTextColor(...COLORS.cinza);
   doc.setFont("helvetica", "normal");
-  doc.text("Pacote Base:", boxMargin, y + 4);
+  doc.text("Pacote Base:", boxMargin, y + 3);
   doc.setTextColor(...COLORS.grafite);
   doc.setFont("helvetica", "bold");
-  doc.text(formatCurrency(resumo.pacoteMensal), boxRight, y + 4, {
-    align: "right",
-  });
-  y += 6;
+  doc.text(formatCurrency(resumo.pacoteMensal), boxRight, y + 3, { align: "right" });
+  y += 5;
 
   if (resumo.totalUpgradesMensal > 0) {
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.cinza);
     doc.setFont("helvetica", "normal");
-    doc.text("Upgrades:", boxMargin, y + 4);
+    doc.text("Upgrades:", boxMargin, y + 3);
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(resumo.totalUpgradesMensal), boxRight, y + 4, {
-      align: "right",
-    });
-    y += 6;
+    doc.text(formatCurrency(resumo.totalUpgradesMensal), boxRight, y + 3, { align: "right" });
+    y += 5;
   }
 
   if (resumo.agentesMensal > 0) {
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.cinza);
     doc.setFont("helvetica", "normal");
-    doc.text("Agentes A.I:", boxMargin, y + 4);
+    doc.text("Agentes A.I:", boxMargin, y + 3);
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(resumo.agentesMensal), boxRight, y + 4, {
-      align: "right",
-    });
-    y += 6;
+    doc.text(formatCurrency(resumo.agentesMensal), boxRight, y + 3, { align: "right" });
+    y += 5;
   }
 
-  // Subtotal and Desconto Mensal V0.14 (renamed from Desconto V0.11)
+  // Subtotal and Desconto Mensal V0.16: Compact
   if (resumo.valorDescontoMensal > 0) {
-    // Subtotal line
     doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.3);
-    doc.line(boxMargin, y + 2, boxRight, y + 2);
-    y += 5;
+    doc.setLineWidth(0.2);
+    doc.line(boxMargin, y + 1, boxRight, y + 1);
+    y += 3;
 
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.cinza);
     doc.setFont("helvetica", "normal");
-    doc.text("Subtotal Mensal:", boxMargin, y + 4);
+    doc.text("Subtotal Mensal:", boxMargin, y + 3);
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(resumo.subtotalMensal), boxRight, y + 4, {
-      align: "right",
-    });
-    y += 6;
+    doc.text(formatCurrency(resumo.subtotalMensal), boxRight, y + 3, { align: "right" });
+    y += 5;
 
-    // Desconto Mensal
-    let descontoLabel = "Desconto Mensal";
-    if (descontoMensal.tipo === "percentual") {
-      descontoLabel += ` (${descontoMensal.valor}%)`;
-    }
-    if (resumo.motivoDescontoMensal) {
-      descontoLabel += ` - ${resumo.motivoDescontoMensal}`;
-    }
-    descontoLabel += ":";
+    // Desconto Mensal label
+    let descontoLabel = "Desc. Mensal";
+    if (descontoMensal.tipo === "percentual") descontoLabel += ` (${descontoMensal.valor}%)`;
+    if (resumo.motivoDescontoMensal) descontoLabel += `: ${resumo.motivoDescontoMensal}`;
 
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.verde);
     doc.setFont("helvetica", "bold");
-    doc.text(descontoLabel, boxMargin, y + 4);
-    doc.text(`-${formatCurrency(resumo.valorDescontoMensal)}`, boxRight, y + 4, {
-      align: "right",
-    });
-    y += 6;
+    doc.text(descontoLabel, boxMargin, y + 3);
+    doc.text(`-${formatCurrency(resumo.valorDescontoMensal)}`, boxRight, y + 3, { align: "right" });
+    y += 5;
   }
 
   // Final total separator
   doc.setDrawColor(...COLORS.grafite);
-  doc.setLineWidth(0.8);
-  doc.line(boxMargin, y + 2, boxRight, y + 2);
-  y += 6;
+  doc.setLineWidth(0.6);
+  doc.line(boxMargin, y + 1, boxRight, y + 1);
+  y += 4;
 
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setTextColor(...COLORS.grafite);
   doc.setFont("helvetica", "bold");
-  doc.text("TOTAL MENSAL:", boxMargin, y + 4);
+  doc.text("TOTAL MENSAL:", boxMargin, y + 3);
   doc.setTextColor(...COLORS.vermelho);
-  doc.setFontSize(13);
-  doc.text(formatCurrency(resumo.totalMensal), boxRight, y + 4, { align: "right" });
-  y += 7;
+  doc.setFontSize(12);
+  doc.text(formatCurrency(resumo.totalMensal), boxRight, y + 3, { align: "right" });
+  y += 5;
 
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setTextColor(...COLORS.cinza);
   doc.setFont("helvetica", "normal");
-  doc.text("Total Anual (12x):", boxMargin, y + 4);
+  doc.text("Total Anual (12x):", boxMargin, y + 3);
   doc.setTextColor(...COLORS.grafite);
   doc.setFont("helvetica", "bold");
-  doc.text(formatCurrency(resumo.totalAnual), boxRight, y + 4, {
-    align: "right",
-  });
-  y += 6;
+  doc.text(formatCurrency(resumo.totalAnual), boxRight, y + 3, { align: "right" });
+  y += 5;
 
   if (resumo.economia > 0) {
+    doc.setFontSize(7);
     doc.setTextColor(...COLORS.verde);
     doc.setFont("helvetica", "normal");
-    doc.text("Economia (Tecnologia Inclusa):", boxMargin, y + 4);
+    doc.text("Economia (Tecnologia):", boxMargin, y + 3);
     doc.setFont("helvetica", "bold");
-    doc.text(`${formatCurrency(resumo.economia)}/mes`, boxRight, y + 4, {
-      align: "right",
-    });
-    y += 6;
+    doc.text(`${formatCurrency(resumo.economia)}/mes`, boxRight, y + 3, { align: "right" });
+    y += 5;
   }
 
-  if (resumo.economiaAnualDescontoMensal > 0) {
-    doc.setTextColor(...COLORS.verde);
-    doc.setFont("helvetica", "bold");
-    doc.text("Economia Anual (Desconto Mensal):", boxMargin, y + 4);
-    doc.text(formatCurrency(resumo.economiaAnualDescontoMensal), boxRight, y + 4, {
-      align: "right",
-    });
-    y += 6;
-  }
-
-  // V0.15: Economia Total Anual (Setup + 12 × Mensal)
+  // V0.16: Economia Total Anual with detailing
   if (resumo.economiaAnualTotal > 0) {
-    doc.setFillColor(220, 252, 231); // Light green
-    doc.roundedRect(boxMargin - 2, y, boxRight - boxMargin + 4, 7, 1, 1, "F");
-    doc.setTextColor(21, 128, 61); // Dark green
+    doc.setFillColor(220, 252, 231);
+    doc.roundedRect(boxMargin - 2, y, boxRight - boxMargin + 4, 9, 1, 1, "F");
+    doc.setFontSize(8);
+    doc.setTextColor(21, 128, 61);
     doc.setFont("helvetica", "bold");
-    doc.text("ECONOMIA TOTAL ANUAL:", boxMargin, y + 5);
-    doc.text(formatCurrency(resumo.economiaAnualTotal), boxRight, y + 5, {
-      align: "right",
-    });
-    y += 8;
+
+    // Detail line (compact)
+    let detailText = "ECONOMIA TOTAL ANUAL";
+    if (resumo.valorDescontoSetup > 0 && resumo.economiaAnualDescontoMensal > 0) {
+      detailText += ` (Setup + 12x Mensal)`;
+    }
+    doc.text(detailText + ":", boxMargin, y + 6);
+    doc.text(formatCurrency(resumo.economiaAnualTotal), boxRight, y + 6, { align: "right" });
+    y += 10;
   }
 
-  y = boxY + boxHeight + 6;
+  y = boxY + boxHeight + 4;
 
   // ========= CONDICOES COMERCIAIS =========
   sectionTitle("CONDICOES COMERCIAIS");

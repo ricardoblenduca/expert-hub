@@ -829,15 +829,56 @@ export default function ProposalPreview() {
                       </span>
                     </div>
                   )}
-                  {resumo.economiaAnualDescontoMensal > 0 && (
-                    <div className="flex justify-between text-sm font-kanit mt-1">
-                      <span className="text-green-600">Economia Anual (Desconto Mensal):</span>
-                      <span className="font-bold text-green-600">
-                        {formatCurrency(resumo.economiaAnualDescontoMensal)}
-                      </span>
-                    </div>
-                  )}
                 </div>
+
+                {/* V0.16: Economia Total Anual com detalhamento */}
+                {resumo.economiaAnualTotal > 0 && (
+                  <div className="mt-4 bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-500 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-2xl">🎉</span>
+                      <h4 className="font-kanit font-bold text-green-800">Economia Total Anual</h4>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-3 space-y-2">
+                      {/* Detalhamento */}
+                      {resumo.valorDescontoSetup > 0 && (
+                        <div className="flex justify-between text-sm font-kanit">
+                          <span className="text-blenduca-cinza-medio">Desconto Setup:</span>
+                          <span className="font-medium text-green-700">
+                            {formatCurrency(resumo.valorDescontoSetup)}
+                          </span>
+                        </div>
+                      )}
+                      {resumo.economiaAnualDescontoMensal > 0 && (
+                        <div className="flex justify-between text-sm font-kanit">
+                          <span className="text-blenduca-cinza-medio">
+                            Desconto Mensal (12x):
+                          </span>
+                          <span className="font-medium text-green-700">
+                            {formatCurrency(resumo.economiaAnualDescontoMensal)}
+                          </span>
+                        </div>
+                      )}
+                      {resumo.economiaAnualDescontoMensal > 0 && (
+                        <p className="text-xs text-blenduca-cinza-medio italic">
+                          ({formatCurrency(resumo.valorDescontoMensal)}/mes x 12)
+                        </p>
+                      )}
+
+                      {/* Separador */}
+                      <div className="border-t-2 border-green-500 pt-2 mt-2">
+                        <div className="flex justify-between items-baseline">
+                          <span className="font-kanit font-bold text-green-800">
+                            ECONOMIA TOTAL ANUAL:
+                          </span>
+                          <span className="font-kanit font-bold text-xl text-green-700">
+                            {formatCurrency(resumo.economiaAnualTotal)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -895,16 +936,13 @@ export default function ProposalPreview() {
             </ol>
           </section>
 
-          {/* Footer */}
-          <div className="border-t border-gray-200 pt-6 text-center">
-            <p className="font-kanit font-semibold text-sm text-blenduca-vermelho">
-              Blenduca - Experts em Negocios de Conhecimento
+          {/* Footer - V0.16: Clean 2 lines only */}
+          <div className="border-t-2 border-blenduca-vermelho pt-6 text-center">
+            <p className="font-kanit font-bold text-sm text-blenduca-vermelho">
+              Somos a Blenduca, Experts em Negocios de Conhecimento!
             </p>
-            <p className="font-kanit text-xs text-blenduca-grafite italic mt-1">
-              Somos a Blenduca! Experts em negocios de conhecimento! #OMelhorDeCadaExpert
-            </p>
-            <p className="font-kanit text-xs text-blenduca-cinza-medio mt-1">
-              blenduca.com.br | comercial@blenduca.com.br
+            <p className="font-kanit font-bold text-sm text-blenduca-vermelho mt-1">
+              #OMelhorDeCadaExpert
             </p>
           </div>
         </div>

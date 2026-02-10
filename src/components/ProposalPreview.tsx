@@ -18,7 +18,7 @@ export default function ProposalPreview() {
   const [generating, setGenerating] = useState(false);
 
   const resumo = calcularResumo();
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes, coprodutor } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, assistentesGeniusAI, agentes, coprodutor, desconto } = carrinho;
 
   const modalidadeData = modalidade ? modalidades[modalidade] : null;
   const nivelData = nivel ? niveisMap[nivel] : null;
@@ -510,6 +510,44 @@ export default function ProposalPreview() {
                 </div>
               </div>
             )}
+
+            {/* Genius AI Assistentes V0.11 */}
+            {assistentesGeniusAI > 0 && (
+              <div className="mb-6 border border-blue-200 bg-blue-50/30 rounded-lg p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blue-600 text-white px-2 py-1 rounded">
+                    GENIUS AI - ASSISTENTES EXTRAS
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm font-kanit">
+                    <span className="text-blenduca-cinza-medio">Assistentes incluidos no pacote:</span>
+                    <span className="font-medium text-blenduca-grafite">
+                      {nivel === "business" ? "5 CreatorGPT + 1 Suporte" : "10 CreatorGPT + 3 Assistentes"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm font-kanit">
+                    <span className="text-blenduca-cinza-medio">Assistentes adicionais:</span>
+                    <span className="font-semibold text-blue-600">
+                      +{assistentesGeniusAI}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm font-kanit border-t border-blue-200 pt-2 mt-2">
+                    <span className="text-blenduca-cinza-medio">Custo adicional:</span>
+                    <span className="font-bold text-blue-600">
+                      +{formatCurrency(resumo.assistentesGeniusAIMensal)}/mes
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm font-kanit">
+                    <span className="font-semibold text-blenduca-grafite">Total de assistentes:</span>
+                    <span className="font-bold text-blue-600">
+                      {(nivel === "business" ? 6 : 13) + assistentesGeniusAI} assistentes
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Entregaveis Section */}
@@ -665,6 +703,14 @@ export default function ProposalPreview() {
                     </span>
                   </div>
                 )}
+                {resumo.assistentesGeniusAIMensal > 0 && (
+                  <div className="flex justify-between text-sm font-kanit">
+                    <span className="text-blenduca-cinza-medio">Assistentes Genius AI ({assistentesGeniusAI}x):</span>
+                    <span className="font-medium text-blue-600">
+                      {formatCurrency(resumo.assistentesGeniusAIMensal)}
+                    </span>
+                  </div>
+                )}
                 {resumo.agentesMensal > 0 && (
                   <div className="flex justify-between text-sm font-kanit">
                     <span className="text-blenduca-cinza-medio">Agentes A.I:</span>
@@ -680,6 +726,29 @@ export default function ProposalPreview() {
                       {formatCurrency(resumo.coprodutorComissao)}
                     </span>
                   </div>
+                )}
+
+                {/* Subtotal and Desconto */}
+                {resumo.valorDesconto > 0 && (
+                  <>
+                    <div className="border-t border-gray-200 pt-2 mt-2">
+                      <div className="flex justify-between text-sm font-kanit">
+                        <span className="text-blenduca-cinza-medio">Subtotal:</span>
+                        <span className="font-medium text-blenduca-grafite">
+                          {formatCurrency(resumo.subtotalMensal)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-sm font-kanit bg-green-50 p-2 rounded -mx-2">
+                      <span className="text-green-600 font-semibold">
+                        Desconto {desconto.tipo === "percentual" ? `(${desconto.valor}%)` : ""}
+                        {desconto.motivo && ` - ${desconto.motivo}`}:
+                      </span>
+                      <span className="font-bold text-green-600">
+                        -{formatCurrency(resumo.valorDesconto)}
+                      </span>
+                    </div>
+                  </>
                 )}
 
                 {/* Total */}
@@ -703,6 +772,14 @@ export default function ProposalPreview() {
                       <span className="text-blenduca-verde">Economia (Tecnologia Inclusa):</span>
                       <span className="font-medium text-blenduca-verde">
                         {formatCurrency(resumo.economia)}/mes
+                      </span>
+                    </div>
+                  )}
+                  {resumo.economiaAnualDesconto > 0 && (
+                    <div className="flex justify-between text-sm font-kanit mt-1">
+                      <span className="text-green-600">Economia Anual (Desconto):</span>
+                      <span className="font-bold text-green-600">
+                        {formatCurrency(resumo.economiaAnualDesconto)}
                       </span>
                     </div>
                   )}

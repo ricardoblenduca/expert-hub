@@ -357,6 +357,30 @@ export interface CoProdutorConfig {
 }
 
 // ============================================
+// DESCONTO V0.11
+// ============================================
+
+export type TipoDesconto = "percentual" | "valor";
+
+export interface DescontoConfig {
+  ativo: boolean;
+  tipo: TipoDesconto;
+  valor: number; // percentual (0-100) ou valor fixo em R$
+  motivo: string; // opcional: motivo do desconto
+}
+
+// ============================================
+// GENIUS AI ASSISTENTES V0.11
+// ============================================
+
+export interface GeniusAIAssistentesConfig {
+  precoUnitario: number; // R$ 500/assistente
+  maximo: number; // Máximo de assistentes adicionais
+  descricao: string;
+  exemplos: string[];
+}
+
+// ============================================
 // CARRINHO V5.0
 // ============================================
 
@@ -401,11 +425,17 @@ export interface CarrinhoState {
   upgradeExperienceFlix: NivelId | null;
   funisExtras: number;
 
+  // Genius AI assistentes extras (Business/Scale only) - V0.11
+  assistentesGeniusAI: number;
+
   // Agentes AI
   agentes: AgenteNoCarrinho[];
 
   // Co-produtor (Business/Scale only)
   coprodutor: CoProdutorConfig | null;
+
+  // Desconto comercial V0.11
+  desconto: DescontoConfig;
 
   // Condições
   condicaoPagamento: CondicaoPagamento;
@@ -430,14 +460,23 @@ export interface ResumoCarrinho {
   funisExtrasMensal: number;
   totalUpgradesMensal: number;
 
+  // Genius AI assistentes extras V0.11
+  assistentesGeniusAIMensal: number;
+
   // Agentes AI
   agentesSetup: number;
   agentesMensal: number;
 
-  // Totais
+  // Totais (antes do desconto)
   totalSetup: number;
   totalEntrada: number;
   subtotalMensal: number;
+
+  // Desconto V0.11
+  valorDesconto: number;
+  motivoDesconto: string;
+
+  // Totais finais (após desconto)
   totalMensal: number;
   totalAnual: number;
 
@@ -446,6 +485,7 @@ export interface ResumoCarrinho {
 
   // Economia
   economia: number;
+  economiaAnualDesconto: number;
 
   // Sugestão de upgrade
   sugestaoUpgrade?: {

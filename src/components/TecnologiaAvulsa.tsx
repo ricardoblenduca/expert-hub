@@ -24,12 +24,51 @@ const FUNNEL_SIGNIFICADOS: Record<string, string> = {
   funnel_scale: "7 funis + IA de pre-vendas. Maquina de conversao automatizada. Multiplos funis para diferentes publicos, produtos e testes. IA qualifica leads antes de chegarem em voce. Eficiencia maxima.",
 };
 
+// V0.11: Genius AI assistentes config
+const GENIUS_AI_ASSISTENTES = {
+  precoUnitario: 500,
+  maximo: 20,
+  descricao: "Adicione assistentes de IA personalizados para diferentes funcoes do seu negocio",
+  exemplos: [
+    "Assistente de Conteudo",
+    "Assistente de Vendas",
+    "Assistente de Suporte",
+    "Assistente de Onboarding",
+    "Assistente Personalizado",
+  ],
+};
+
+// V0.11: Genius AI recursos inclusos por nivel
+const GENIUS_AI_RECURSOS: Record<string, string[]> = {
+  business: [
+    "5 CreatorGPT para criacao de conteudo",
+    "1 Assistente de Suporte IA",
+    "Integracao com a plataforma",
+    "Treinamento personalizado",
+  ],
+  scale: [
+    "10 CreatorGPT para criacao de conteudo",
+    "1 Assistente de Suporte IA",
+    "1 Assistente de Pre-vendas IA",
+    "1 Assistente de Vendas IA",
+    "App nativo integrado",
+    "Aulas ao vivo com IA",
+  ],
+};
+
 export default function TecnologiaAvulsa() {
   const carrinho = useCartStore((s) => s.carrinho);
   const setStep = useCartStore((s) => s.setStep);
   const setExperienceFlixAvulso = useCartStore((s) => s.setExperienceFlixAvulso);
   const setFunnelPagesAvulso = useCartStore((s) => s.setFunnelPagesAvulso);
   const setCoprodutor = useCartStore((s) => s.setCoprodutor);
+  const setAssistentesGeniusAI = useCartStore((s) => s.setAssistentesGeniusAI);
+  // V0.11: Desconto functions
+  const setDescontoAtivo = useCartStore((s) => s.setDescontoAtivo);
+  const setDescontoTipo = useCartStore((s) => s.setDescontoTipo);
+  const setDescontoValor = useCartStore((s) => s.setDescontoValor);
+  const setDescontoMotivo = useCartStore((s) => s.setDescontoMotivo);
+  const calcularResumo = useCartStore((s) => s.calcularResumo);
 
   // Local state for selections
   const [selectedFunnelPacote, setSelectedFunnelPacote] = useState<string | null>(null);
@@ -42,8 +81,11 @@ export default function TecnologiaAvulsa() {
   const [showFunnelRecursos, setShowFunnelRecursos] = useState<Record<string, boolean>>({});
 
   // Determine context
-  const { modalidade, nivel, coprodutor } = carrinho;
+  const { modalidade, nivel, coprodutor, assistentesGeniusAI, desconto } = carrinho;
   const isAddingToProgram = carrinho.tipoProposta === "programa" || carrinho.tipoProposta === "combinado";
+
+  // V0.11: Calculate resumo for desconto preview
+  const resumo = calcularResumo();
 
   // Current selections
   const selectedFlix = carrinho.tecnologiaAvulsa?.experienceFlix?.plano;
@@ -833,6 +875,144 @@ export default function TecnologiaAvulsa() {
         )}
       </div>
 
+      {/* GENIUS AI ASSISTENTES SECTION V0.11 (Business/Scale only) */}
+      {coprodutorDisponivel && (
+        <div className="mb-10 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 border-2 border-blue-200 rounded-xl p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">🧠</span>
+            <h3 className="font-kanit font-bold text-xl text-blenduca-grafite">
+              Genius AI - Central de Inteligencia
+            </h3>
+          </div>
+          <p className="font-kanit text-sm text-blenduca-cinza-medio mb-6">
+            Integrado na Plataforma Experience Flix
+          </p>
+
+          {/* Info sobre inclusao no pacote */}
+          <div className="bg-white rounded-lg p-4 border border-blue-100 mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-500 text-white rounded-full text-xs font-semibold mb-3">
+              <span>✅</span>
+              <span>Incluido no seu pacote {nivel === "business" ? "BUSINESS" : "SCALE"}</span>
+            </div>
+
+            <p className="font-kanit text-xs font-bold text-blenduca-cinza-medio uppercase mb-2">
+              O que esta incluido:
+            </p>
+            <ul className="space-y-1">
+              {GENIUS_AI_RECURSOS[nivel || "business"]?.map((recurso, i) => (
+                <li key={i} className="flex items-start gap-2 font-kanit text-xs text-blenduca-grafite">
+                  <span className="text-green-500 mt-0.5 font-bold">✓</span>
+                  {recurso}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Assistentes adicionais */}
+          <div className="bg-white rounded-lg p-4 border-2 border-dashed border-blue-200">
+            <h4 className="font-kanit font-bold text-sm text-blue-600 mb-1">
+              Assistentes Adicionais
+            </h4>
+            <p className="font-kanit text-xs text-blenduca-cinza-medio mb-4">
+              {GENIUS_AI_ASSISTENTES.descricao}
+            </p>
+
+            {/* Exemplos de assistentes */}
+            <div className="mb-5">
+              <p className="font-kanit text-[10px] text-blenduca-cinza-medio mb-2">
+                Exemplos de assistentes:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {GENIUS_AI_ASSISTENTES.exemplos.map((exemplo, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 border border-blue-200 rounded-full text-xs text-blue-600"
+                  >
+                    <span>🤖</span>
+                    {exemplo}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Contador de assistentes */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-lg">➕</span>
+                <span className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                  Quantos assistentes adicionais?
+                </span>
+              </div>
+
+              <div className="flex items-center justify-center gap-4 mb-3">
+                <button
+                  onClick={() => setAssistentesGeniusAI(assistentesGeniusAI - 1)}
+                  disabled={assistentesGeniusAI <= 0}
+                  className="w-10 h-10 rounded-lg border-2 border-blue-200 bg-white text-blue-600 font-bold text-xl hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  −
+                </button>
+                <span className="w-16 text-center font-kanit font-bold text-2xl text-blenduca-grafite">
+                  {assistentesGeniusAI}
+                </span>
+                <button
+                  onClick={() => setAssistentesGeniusAI(assistentesGeniusAI + 1)}
+                  disabled={assistentesGeniusAI >= GENIUS_AI_ASSISTENTES.maximo}
+                  className="w-10 h-10 rounded-lg border-2 border-blue-200 bg-white text-blue-600 font-bold text-xl hover:bg-blue-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  +
+                </button>
+              </div>
+
+              <p className="font-kanit text-xs text-blenduca-cinza-medio text-center mb-4">
+                <span className="text-blue-600 font-semibold">{formatCurrency(GENIUS_AI_ASSISTENTES.precoUnitario)}/mes</span> por assistente adicional
+              </p>
+
+              {/* Resumo (se tem assistentes) */}
+              {assistentesGeniusAI > 0 && (
+                <div className="bg-white rounded-lg p-4 border-2 border-blue-200 animate-fade-in-up">
+                  <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100">
+                    <span>📊</span>
+                    <span className="font-kanit font-semibold text-sm text-blue-600">Resumo</span>
+                  </div>
+
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between font-kanit text-blenduca-cinza-medio">
+                      <span>Assistentes incluidos no pacote:</span>
+                      <span className="text-blenduca-grafite">
+                        {nivel === "business" ? "5 CreatorGPT + 1 Suporte" : "10 CreatorGPT + 3 Assistentes"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-kanit text-blue-600 font-semibold">
+                      <span>Assistentes adicionais:</span>
+                      <span>+{assistentesGeniusAI}</span>
+                    </div>
+                    <div className="flex justify-between font-kanit text-blenduca-vermelho font-semibold">
+                      <span>Custo adicional:</span>
+                      <span>+{formatCurrency(assistentesGeniusAI * GENIUS_AI_ASSISTENTES.precoUnitario)}/mes</span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-3 mt-3 border-t-2 border-blue-200">
+                    <span className="font-kanit text-sm text-blenduca-grafite">Total de assistentes:</span>
+                    <span className="font-kanit font-bold text-lg text-blue-600">
+                      {(nivel === "business" ? 6 : 13) + assistentesGeniusAI} assistentes
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-3 p-2 bg-blue-50 rounded-lg">
+                    <span>🚀</span>
+                    <span className="font-kanit text-xs text-blue-600">
+                      Mais assistentes = mais automacao e produtividade
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CO-PRODUTOR SECTION (Business/Scale only) */}
       {coprodutorDisponivel && (
         <div className="mb-10 bg-white border border-gray-100 rounded-xl p-6">
@@ -939,6 +1119,199 @@ export default function TecnologiaAvulsa() {
           )}
         </div>
       )}
+
+      {/* DESCONTO SECTION V0.11 */}
+      <div className="mb-10 bg-gradient-to-br from-amber-50/50 to-orange-50/50 border-2 border-amber-300 rounded-xl p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-2xl">💰</span>
+          <h3 className="font-kanit font-bold text-xl text-blenduca-grafite">
+            Desconto
+          </h3>
+        </div>
+        <p className="font-kanit text-sm text-blenduca-cinza-medio mb-6">
+          Aplicar desconto comercial no valor total
+        </p>
+
+        {/* Toggle para ativar desconto */}
+        <label className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all mb-6 ${
+          desconto.ativo
+            ? "border-green-500 bg-green-50/50"
+            : "border-gray-200 hover:border-gray-300 bg-white"
+        }`}>
+          <input
+            type="checkbox"
+            checked={desconto.ativo}
+            onChange={(e) => setDescontoAtivo(e.target.checked)}
+            className="w-5 h-5 rounded border-gray-300 text-green-500 focus:ring-green-500 cursor-pointer"
+          />
+          <span className="font-kanit font-semibold text-sm text-blenduca-grafite">
+            Aplicar desconto nesta proposta
+          </span>
+        </label>
+
+        {/* Formulario de desconto (se ativo) */}
+        {desconto.ativo && (
+          <div className="space-y-6 animate-fade-in-up">
+            {/* Tipo de desconto */}
+            <div>
+              <label className="block font-kanit text-xs text-blenduca-cinza-medio mb-3">
+                Tipo de desconto
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  desconto.tipo === "percentual"
+                    ? "border-blenduca-vermelho bg-blenduca-vermelho/5"
+                    : "border-gray-200 hover:border-gray-300 bg-white"
+                }`}>
+                  <input
+                    type="radio"
+                    checked={desconto.tipo === "percentual"}
+                    onChange={() => setDescontoTipo("percentual")}
+                    className="w-4 h-4 text-blenduca-vermelho focus:ring-blenduca-vermelho cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-lg mr-2">📊</span>
+                    <span className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                      Percentual (%)
+                    </span>
+                  </div>
+                </label>
+
+                <label className={`flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  desconto.tipo === "valor"
+                    ? "border-blenduca-vermelho bg-blenduca-vermelho/5"
+                    : "border-gray-200 hover:border-gray-300 bg-white"
+                }`}>
+                  <input
+                    type="radio"
+                    checked={desconto.tipo === "valor"}
+                    onChange={() => setDescontoTipo("valor")}
+                    className="w-4 h-4 text-blenduca-vermelho focus:ring-blenduca-vermelho cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-lg mr-2">💵</span>
+                    <span className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                      Valor fixo (R$)
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Valor do desconto */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block font-kanit text-xs text-blenduca-cinza-medio mb-2">
+                  {desconto.tipo === "percentual" ? "Percentual de desconto" : "Valor de desconto"}
+                </label>
+                <div className="flex items-center border-2 border-gray-200 rounded-lg overflow-hidden bg-white focus-within:border-blenduca-vermelho">
+                  {desconto.tipo === "valor" && (
+                    <span className="px-4 py-3 bg-gray-100 font-kanit font-semibold text-blenduca-cinza-medio border-r border-gray-200">
+                      R$
+                    </span>
+                  )}
+                  <input
+                    type="number"
+                    value={desconto.valor || ""}
+                    onChange={(e) => setDescontoValor(parseFloat(e.target.value) || 0)}
+                    min={0}
+                    max={desconto.tipo === "percentual" ? 100 : resumo.subtotalMensal}
+                    step={desconto.tipo === "percentual" ? 1 : 0.01}
+                    placeholder={desconto.tipo === "percentual" ? "Ex: 10" : "Ex: 500.00"}
+                    className="flex-1 px-4 py-3 font-kanit text-sm text-blenduca-grafite focus:outline-none"
+                  />
+                  {desconto.tipo === "percentual" && (
+                    <span className="px-4 py-3 bg-gray-100 font-kanit font-semibold text-blenduca-cinza-medio border-l border-gray-200">
+                      %
+                    </span>
+                  )}
+                </div>
+                <p className="font-kanit text-[10px] text-blenduca-cinza-medio mt-1">
+                  {desconto.tipo === "percentual"
+                    ? "Digite um valor entre 0% e 100%"
+                    : `Digite um valor até ${formatCurrency(resumo.subtotalMensal)}`}
+                </p>
+              </div>
+
+              {/* Preview do desconto */}
+              <div>
+                <label className="block font-kanit text-xs text-blenduca-cinza-medio mb-2">
+                  Valor do desconto
+                </label>
+                <div className="flex items-center justify-between p-4 bg-white border-2 border-gray-200 rounded-lg">
+                  <span className="font-kanit text-xs text-blenduca-cinza-medio">Desconto:</span>
+                  <span className="font-kanit font-bold text-lg text-green-600">
+                    - {formatCurrency(resumo.valorDesconto)}
+                  </span>
+                </div>
+                {desconto.tipo === "percentual" && desconto.valor > 0 && (
+                  <p className="font-kanit text-[10px] text-blenduca-cinza-medio mt-1">
+                    {desconto.valor}% de {formatCurrency(resumo.subtotalMensal)}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Motivo do desconto (opcional) */}
+            <div>
+              <label className="block font-kanit text-xs text-blenduca-cinza-medio mb-2">
+                Motivo do desconto (opcional)
+              </label>
+              <input
+                type="text"
+                value={desconto.motivo}
+                onChange={(e) => setDescontoMotivo(e.target.value)}
+                placeholder="Ex: Desconto de lancamento, Parceria estrategica, etc."
+                maxLength={100}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg font-kanit text-sm text-blenduca-grafite focus:outline-none focus:border-blenduca-vermelho"
+              />
+              <p className="font-kanit text-[10px] text-blenduca-cinza-medio mt-1">
+                Este motivo aparecera na proposta comercial
+              </p>
+            </div>
+
+            {/* Resumo visual do desconto */}
+            <div className="bg-white rounded-lg p-5 border-2 border-blenduca-vermelho">
+              <div className="space-y-3">
+                <div className="flex justify-between font-kanit text-sm">
+                  <span className="text-blenduca-cinza-medio">Subtotal (sem desconto):</span>
+                  <span className="text-blenduca-grafite">{formatCurrency(resumo.subtotalMensal)}</span>
+                </div>
+
+                <div className="flex justify-between font-kanit text-sm text-green-600 font-semibold">
+                  <span>
+                    Desconto {desconto.tipo === "percentual" ? `(${desconto.valor}%)` : ""}:
+                  </span>
+                  <span>- {formatCurrency(resumo.valorDesconto)}</span>
+                </div>
+
+                <div className="flex justify-between items-center pt-3 border-t-2 border-blenduca-vermelho">
+                  <span className="font-kanit font-semibold text-blenduca-grafite">Total com desconto:</span>
+                  <span className="font-kanit font-bold text-2xl text-blenduca-vermelho">
+                    {formatCurrency(resumo.totalMensal)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Badge de economia */}
+              {resumo.valorDesconto > 0 && (
+                <div className="flex items-center gap-2 mt-4 p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-lg text-white">
+                  <span className="text-lg">🎉</span>
+                  <span className="font-kanit text-sm">
+                    Economia de{" "}
+                    <strong>
+                      {desconto.tipo === "percentual"
+                        ? `${desconto.valor}%`
+                        : formatCurrency(resumo.valorDesconto)}
+                    </strong>
+                    {" "}({formatCurrency(resumo.economiaAnualDesconto)}/ano)
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Actions */}
       <div className="flex items-center justify-between">

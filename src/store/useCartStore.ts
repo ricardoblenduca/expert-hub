@@ -12,6 +12,8 @@ import type {
   CarrinhoState,
   TecnologiaNoCarrinho,
   CoProdutorConfig,
+  DescontoConfig,
+  TipoDesconto,
 } from "@/types";
 import { precosMatriz } from "@/data/precosMatriz";
 import {
@@ -77,6 +79,16 @@ interface StoreState {
   // Co-produtor (Business/Scale only)
   setCoprodutor: (config: CoProdutorConfig | null) => void;
 
+  // Genius AI assistentes extras (Business/Scale only) - V0.11
+  setAssistentesGeniusAI: (quantidade: number) => void;
+
+  // Desconto comercial V0.11
+  setDescontoAtivo: (ativo: boolean) => void;
+  setDescontoTipo: (tipo: TipoDesconto) => void;
+  setDescontoValor: (valor: number) => void;
+  setDescontoMotivo: (motivo: string) => void;
+  resetDesconto: () => void;
+
   // Condicoes
   setCondicaoPagamento: (condicao: CondicaoPagamento) => void;
   setRevenueShareObservacoes: (obs: string) => void;
@@ -123,6 +135,13 @@ const initialDadosCliente: DadosCliente = {
   condicoesEspeciais: "",
 };
 
+const initialDesconto: DescontoConfig = {
+  ativo: false,
+  tipo: "percentual",
+  valor: 0,
+  motivo: "",
+};
+
 const initialCarrinho: CarrinhoState = {
   tipoProposta: null,
   modalidade: null,
@@ -130,8 +149,10 @@ const initialCarrinho: CarrinhoState = {
   tecnologiaAvulsa: null,
   upgradeExperienceFlix: null,
   funisExtras: 0,
+  assistentesGeniusAI: 0,
   agentes: [],
   coprodutor: null,
+  desconto: initialDesconto,
   condicaoPagamento: "padrao",
   revenueShareObservacoes: "",
 };
@@ -389,6 +410,71 @@ export const useCartStore = create<StoreState>((set, get) => ({
       },
     })),
 
+  // Genius AI assistentes extras (Business/Scale only) - V0.11
+  setAssistentesGeniusAI: (quantidade) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        assistentesGeniusAI: Math.max(0, Math.min(20, quantidade)),
+      },
+    })),
+
+  // Desconto comercial V0.11
+  setDescontoAtivo: (ativo) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        desconto: {
+          ...state.carrinho.desconto,
+          ativo,
+          // Reset values when deactivating
+          ...(ativo ? {} : { valor: 0, motivo: "" }),
+        },
+      },
+    })),
+
+  setDescontoTipo: (tipo) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        desconto: {
+          ...state.carrinho.desconto,
+          tipo,
+          valor: 0, // Reset value when changing type
+        },
+      },
+    })),
+
+  setDescontoValor: (valor) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        desconto: {
+          ...state.carrinho.desconto,
+          valor: Math.max(0, valor),
+        },
+      },
+    })),
+
+  setDescontoMotivo: (motivo) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        desconto: {
+          ...state.carrinho.desconto,
+          motivo,
+        },
+      },
+    })),
+
+  resetDesconto: () =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        desconto: initialDesconto,
+      },
+    })),
+
   // Condicoes
   setCondicaoPagamento: (condicao) =>
     set((state) => ({
@@ -424,8 +510,10 @@ export const useCartStore = create<StoreState>((set, get) => ({
       tecnologiaAvulsa,
       upgradeExperienceFlix,
       funisExtras,
+      assistentesGeniusAI,
       agentes,
       coprodutor,
+      desconto,
     } = carrinho;
 
     // Default values
@@ -439,15 +527,19 @@ export const useCartStore = create<StoreState>((set, get) => ({
       upgradeFlixMensal: 0,
       funisExtrasMensal: 0,
       totalUpgradesMensal: 0,
+      assistentesGeniusAIMensal: 0,
       agentesSetup: 0,
       agentesMensal: 0,
       coprodutorComissao: 0,
       totalSetup: 0,
       totalEntrada: 0,
       subtotalMensal: 0,
+      valorDesconto: 0,
+      motivoDesconto: "",
       totalMensal: 0,
       totalAnual: 0,
       economia: 0,
+      economiaAnualDesconto: 0,
     };
 
     // Pacote base (programa)
@@ -482,6 +574,11 @@ export const useCartStore = create<StoreState>((set, get) => ({
     resumo.totalUpgradesMensal =
       resumo.upgradeFlixMensal + resumo.funisExtrasMensal;
 
+    // Genius AI assistentes extras (Business/Scale only) - V0.11
+    if ((nivel === "business" || nivel === "scale") && assistentesGeniusAI > 0) {
+      resumo.assistentesGeniusAIMensal = assistentesGeniusAI * 500;
+    }
+
     // Tecnologia avulsa
     if (tecnologiaAvulsa) {
       if (tecnologiaAvulsa.experienceFlix) {
@@ -497,12 +594,13 @@ export const useCartStore = create<StoreState>((set, get) => ({
     resumo.agentesSetup = agentes.reduce((sum, a) => sum + a.setupTotal, 0);
     resumo.agentesMensal = agentes.reduce((sum, a) => sum + a.mensalTotal, 0);
 
-    // Totais
+    // Totais (antes do desconto)
     resumo.totalSetup = resumo.agentesSetup;
     resumo.totalEntrada = resumo.pacoteEntrada + resumo.techAvulsaEntrada;
     resumo.subtotalMensal =
       resumo.pacoteMensal +
       resumo.totalUpgradesMensal +
+      resumo.assistentesGeniusAIMensal +
       resumo.techAvulsaMensal +
       resumo.agentesMensal;
 
@@ -513,7 +611,22 @@ export const useCartStore = create<StoreState>((set, get) => ({
       );
     }
 
-    resumo.totalMensal = resumo.subtotalMensal;
+    // Desconto V0.11
+    if (desconto.ativo && desconto.valor > 0) {
+      if (desconto.tipo === "percentual") {
+        // Desconto percentual (limitado a 100%)
+        const percentual = Math.min(desconto.valor, 100);
+        resumo.valorDesconto = Math.round((resumo.subtotalMensal * percentual) / 100);
+      } else {
+        // Desconto em valor fixo (limitado ao subtotal)
+        resumo.valorDesconto = Math.min(desconto.valor, resumo.subtotalMensal);
+      }
+      resumo.motivoDesconto = desconto.motivo;
+      resumo.economiaAnualDesconto = resumo.valorDesconto * 12;
+    }
+
+    // Total final (após desconto)
+    resumo.totalMensal = resumo.subtotalMensal - resumo.valorDesconto;
     resumo.totalAnual = resumo.totalMensal * 12;
 
     // Economia (tecnologia inclusa no Pacote Completo)

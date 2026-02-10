@@ -25,7 +25,7 @@ export async function generateProposalPDF(proposta: Proposta) {
   let y = 0;
 
   const { carrinho, resumo, cliente, consultor } = proposta;
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes, coprodutor } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, assistentesGeniusAI, agentes, coprodutor, desconto } = carrinho;
 
   // Helper function to strip emojis for PDF (jsPDF doesn't render emojis well)
   function stripEmoji(text: string): string {
@@ -426,6 +426,32 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 4;
   }
 
+  // Genius AI Assistentes V0.11
+  if (assistentesGeniusAI > 0) {
+    checkPageBreak(25);
+    doc.setFillColor(240, 248, 255); // Light blue
+    doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
+    doc.setFontSize(10);
+    doc.setTextColor(...COLORS.grafite);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      `${sectionNum}. GENIUS AI - ASSISTENTES EXTRAS`,
+      margin + 3,
+      y + 4
+    );
+    y += 14;
+    sectionNum++;
+
+    const baseAssistentes = nivel === "business" ? "5 CreatorGPT + 1 Suporte" : "10 CreatorGPT + 3 Assistentes";
+    const totalAssistentes = (nivel === "business" ? 6 : 13) + assistentesGeniusAI;
+
+    bodyText(`Assistentes incluidos no pacote: ${baseAssistentes}`, false, 3);
+    bodyText(`Assistentes adicionais: +${assistentesGeniusAI}`, false, 3);
+    bodyText(`Custo adicional: +${formatCurrency(resumo.assistentesGeniusAIMensal)}/mes`, true, 3);
+    bodyText(`Total de assistentes: ${totalAssistentes} assistentes`, true, 3);
+    y += 4;
+  }
+
   // ========= ENTREGAVEIS DO PACOTE =========
   if (nivel && modalidade) {
     y += 2;
@@ -528,9 +554,12 @@ export async function generateProposalPDF(proposta: Proposta) {
   let boxHeight = 20;
   if (resumo.totalEntrada > 0 || resumo.totalSetup > 0) boxHeight += 24;
   if (resumo.totalUpgradesMensal > 0) boxHeight += 6;
+  if (resumo.assistentesGeniusAIMensal > 0) boxHeight += 6;
   if (resumo.agentesMensal > 0) boxHeight += 6;
   if (resumo.coprodutorComissao > 0) boxHeight += 6;
+  if (resumo.valorDesconto > 0) boxHeight += 14;
   if (resumo.economia > 0) boxHeight += 6;
+  if (resumo.economiaAnualDesconto > 0) boxHeight += 6;
 
   checkPageBreak(boxHeight + 5);
   const boxY = y - 2;
@@ -622,6 +651,19 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 6;
   }
 
+  if (resumo.assistentesGeniusAIMensal > 0) {
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.cinza);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Assistentes Genius AI (${assistentesGeniusAI}x):`, boxMargin, y + 4);
+    doc.setTextColor(...COLORS.azul);
+    doc.setFont("helvetica", "bold");
+    doc.text(formatCurrency(resumo.assistentesGeniusAIMensal), boxRight, y + 4, {
+      align: "right",
+    });
+    y += 6;
+  }
+
   if (resumo.agentesMensal > 0) {
     doc.setFontSize(9);
     doc.setTextColor(...COLORS.cinza);
@@ -643,6 +685,45 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.setTextColor(180, 120, 0); // Amber color
     doc.setFont("helvetica", "bold");
     doc.text(formatCurrency(resumo.coprodutorComissao), boxRight, y + 4, {
+      align: "right",
+    });
+    y += 6;
+  }
+
+  // Subtotal and Desconto V0.11
+  if (resumo.valorDesconto > 0) {
+    // Subtotal line
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(boxMargin, y + 2, boxRight, y + 2);
+    y += 5;
+
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.cinza);
+    doc.setFont("helvetica", "normal");
+    doc.text("Subtotal:", boxMargin, y + 4);
+    doc.setTextColor(...COLORS.grafite);
+    doc.setFont("helvetica", "bold");
+    doc.text(formatCurrency(resumo.subtotalMensal), boxRight, y + 4, {
+      align: "right",
+    });
+    y += 6;
+
+    // Desconto
+    let descontoLabel = "Desconto";
+    if (desconto.tipo === "percentual") {
+      descontoLabel += ` (${desconto.valor}%)`;
+    }
+    if (desconto.motivo) {
+      descontoLabel += ` - ${desconto.motivo}`;
+    }
+    descontoLabel += ":";
+
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.verde);
+    doc.setFont("helvetica", "bold");
+    doc.text(descontoLabel, boxMargin, y + 4);
+    doc.text(`-${formatCurrency(resumo.valorDesconto)}`, boxRight, y + 4, {
       align: "right",
     });
     y += 6;
@@ -680,6 +761,16 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.text("Economia (Tecnologia Inclusa):", boxMargin, y + 4);
     doc.setFont("helvetica", "bold");
     doc.text(`${formatCurrency(resumo.economia)}/mes`, boxRight, y + 4, {
+      align: "right",
+    });
+    y += 6;
+  }
+
+  if (resumo.economiaAnualDesconto > 0) {
+    doc.setTextColor(...COLORS.verde);
+    doc.setFont("helvetica", "bold");
+    doc.text("Economia Anual (Desconto):", boxMargin, y + 4);
+    doc.text(formatCurrency(resumo.economiaAnualDesconto), boxRight, y + 4, {
       align: "right",
     });
     y += 6;

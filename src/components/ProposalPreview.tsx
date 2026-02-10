@@ -5,7 +5,8 @@ import { useCartStore } from "@/store/useCartStore";
 import { formatCurrency, formatDate, generateId } from "@/utils/formatting";
 import { modalidades, niveisMap } from "@/data/modalidades";
 import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
-import type { Proposta } from "@/types";
+import { pilares, entregavelDisponivelNoNivel } from "@/data/entregaveis";
+import type { Proposta, NivelId } from "@/types";
 
 export default function ProposalPreview() {
   const carrinho = useCartStore((s) => s.carrinho);
@@ -463,6 +464,105 @@ export default function ProposalPreview() {
               </div>
             )}
           </section>
+
+          {/* Entregaveis Section */}
+          {nivel && (
+            <section>
+              <SectionTitle>
+                Entregaveis do seu Pacote - {nivelData?.nome}
+              </SectionTitle>
+              <div className="space-y-6">
+                {pilares.map((pilar) => {
+                  const entregaveisDisponiveis = pilar.entregaveis.filter((e) =>
+                    entregavelDisponivelNoNivel(e, nivel as NivelId)
+                  );
+
+                  if (entregaveisDisponiveis.length === 0) return null;
+
+                  return (
+                    <div key={pilar.id}>
+                      {/* Pilar Header */}
+                      <div
+                        className="flex items-center gap-2 mb-3 pb-2 border-b"
+                        style={{ borderColor: `${pilar.cor}30` }}
+                      >
+                        <span className="text-lg">{pilar.icone}</span>
+                        <h4
+                          className="font-kanit font-bold text-sm uppercase tracking-wide"
+                          style={{ color: pilar.cor }}
+                        >
+                          {pilar.nome}
+                        </h4>
+                      </div>
+
+                      {/* Entregaveis */}
+                      <div className="space-y-3">
+                        {entregaveisDisponiveis.map((entregavel) => (
+                          <div
+                            key={entregavel.id}
+                            className="bg-gray-50/50 border border-gray-100 rounded-lg p-4"
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className="text-lg shrink-0">{entregavel.icone}</span>
+                              <div className="flex-1">
+                                <h5 className="font-kanit font-semibold text-sm text-blenduca-grafite mb-1">
+                                  {entregavel.nome}
+                                </h5>
+                                <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2">
+                                  {entregavel.descricao}
+                                </p>
+
+                                {/* Significado */}
+                                <div className="bg-amber-50/50 border-l-2 border-amber-400 p-2 rounded-r mb-2">
+                                  <p className="font-kanit text-[10px] font-bold text-amber-700 uppercase mb-1">
+                                    O que isso significa para voce
+                                  </p>
+                                  <p className="font-kanit text-xs text-blenduca-grafite">
+                                    {entregavel.significado}
+                                  </p>
+                                </div>
+
+                                {/* Detalhes do nivel */}
+                                {entregavel.detalhesNivel?.[nivel as NivelId] && (
+                                  <div className="bg-blue-50/50 rounded p-2">
+                                    <p className="font-kanit text-[10px] font-bold text-blue-700 uppercase mb-1">
+                                      No seu nivel ({nivelData?.nome})
+                                    </p>
+                                    <p className="font-kanit text-xs text-blenduca-grafite whitespace-pre-line">
+                                      {entregavel.detalhesNivel[nivel as NivelId]}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {/* Valor avulso (for tech) */}
+                                {entregavel.valorAvulso?.[nivel as NivelId] && (
+                                  <div className="mt-2 flex items-center justify-between">
+                                    <span className="font-kanit text-xs text-blenduca-cinza-medio">
+                                      Valor avulso: {formatCurrency(entregavel.valorAvulso[nivel as NivelId]!)}/mes
+                                    </span>
+                                    <span className="font-play text-[9px] font-bold bg-green-600 text-white px-2 py-0.5 rounded">
+                                      INCLUSO NO PACOTE
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Frequencia */}
+                                {entregavel.frequencia && (
+                                  <p className="font-kanit text-[10px] text-blenduca-cinza-medio mt-1">
+                                    📅 {entregavel.frequencia}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           {/* Investment summary */}
           <section>

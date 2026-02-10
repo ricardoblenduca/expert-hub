@@ -26,7 +26,7 @@ export interface Modalidade {
 }
 
 // ============================================
-// NIVEIS
+// NIVEIS V6.0
 // ============================================
 
 export type NivelId = "starter" | "professional" | "business" | "scale";
@@ -34,8 +34,10 @@ export type NivelId = "starter" | "professional" | "business" | "scale";
 export interface NivelConfig {
   id: NivelId;
   nome: string;
+  nomeCompleto?: string;
   faturamento: string;
   persona: string;
+  personaDescricao?: string;
   cor: string;
 }
 
@@ -237,36 +239,71 @@ export interface AgenteAI {
 }
 
 // ============================================
-// ENTREGAVEIS V5.0 (3 CAMADAS)
+// ENTREGAVEIS V6.0 (COM SIGNIFICADO E DETALHES POR NIVEL)
 // ============================================
 
-export interface EntregavelCompleto {
+export interface DetalhesNivel {
+  starter?: string;
+  professional?: string;
+  business?: string;
+  scale?: string;
+}
+
+export interface ValorAvulsoPorNivel {
+  starter?: number;
+  professional?: number;
+  business?: number;
+  scale?: number;
+}
+
+export interface Entregavel {
   id: string;
-  categoria: string;
   nome: string;
 
   // Descrição técnica (o que é)
-  descricaoTecnica: string;
+  descricao: string;
 
-  // O que isso significa para o cliente (benefício real)
-  oQueIstoSignifica: string;
+  // O que isso significa para o cliente (benefício)
+  significado: string;
 
-  // Resultado esperado
-  resultadoEsperado: string;
+  // Detalhes específicos por nível
+  detalhesNivel?: DetalhesNivel;
 
   frequencia?: string;
   formato?: string;
   icone: string;
+  acesso?: string;
+  nivel?: string;
+  quantidade?: string;
+  canal?: string;
 
-  destaque?: boolean;
-  valorEstimadoAvulso?: number;
-  diferencialPlano?: string;
+  // Para tecnologia
+  valorAvulso?: ValorAvulsoPorNivel;
 }
 
 export interface PilarEntregaveis {
-  pilar: string;
+  id: string;
+  nome: string;
   icone: string;
-  items: EntregavelCompleto[];
+  cor: string;
+  ordem: number;
+  entregaveis: Entregavel[];
+}
+
+// Legacy interface for backwards compatibility
+export interface EntregavelCompleto {
+  id: string;
+  categoria: string;
+  nome: string;
+  descricaoTecnica: string;
+  oQueIstoSignifica: string;
+  resultadoEsperado: string;
+  frequencia?: string;
+  formato?: string;
+  icone: string;
+  destaque?: boolean;
+  valorEstimadoAvulso?: number;
+  diferencialPlano?: string;
 }
 
 // ============================================

@@ -3,6 +3,7 @@ import type { Proposta, NivelId } from "@/types";
 import { formatCurrency, formatDate } from "./formatting";
 import { modalidades, niveisMap } from "@/data/modalidades";
 import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
+import { pilares, entregavelDisponivelNoNivel } from "@/data/entregaveis";
 
 const COLORS = {
   grafite: [34, 34, 34] as [number, number, number],
@@ -362,6 +363,100 @@ export async function generateProposalPDF(proposta: Proposta) {
         bulletPoint(ent, 6);
       });
       y += 3;
+    });
+  }
+
+  // ========= ENTREGAVEIS DO PACOTE =========
+  if (nivel) {
+    y += 2;
+    sectionTitle(`ENTREGAVEIS DO PACOTE ${nivelData?.nome || ""}`);
+
+    pilares.forEach((pilar) => {
+      const entregaveisDisponiveis = pilar.entregaveis.filter((e) =>
+        entregavelDisponivelNoNivel(e, nivel as NivelId)
+      );
+
+      if (entregaveisDisponiveis.length === 0) return;
+
+      // Pilar header
+      checkPageBreak(15);
+      doc.setFillColor(...COLORS.bgLight);
+      doc.roundedRect(margin, y - 2, contentWidth, 8, 1, 1, "F");
+      doc.setFontSize(9);
+      doc.setTextColor(...COLORS.grafite);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${pilar.icone} ${pilar.nome}`, margin + 3, y + 3);
+      y += 10;
+
+      // Entregaveis
+      entregaveisDisponiveis.forEach((entregavel) => {
+        checkPageBreak(25);
+
+        // Nome
+        doc.setFontSize(9);
+        doc.setTextColor(...COLORS.grafite);
+        doc.setFont("helvetica", "bold");
+        doc.text(`${entregavel.icone} ${entregavel.nome}`, margin + 3, y);
+        y += 4;
+
+        // Descricao
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.cinza);
+        doc.setFont("helvetica", "normal");
+        const descLines = doc.splitTextToSize(entregavel.descricao, contentWidth - 6);
+        doc.text(descLines, margin + 3, y);
+        y += descLines.length * 3.5 + 2;
+
+        // Significado (highlighted)
+        checkPageBreak(15);
+        doc.setFillColor(255, 249, 240);
+        const sigLines = doc.splitTextToSize(entregavel.significado, contentWidth - 12);
+        const sigHeight = sigLines.length * 3.5 + 6;
+        doc.roundedRect(margin + 3, y - 2, contentWidth - 6, sigHeight, 1, 1, "F");
+        doc.setDrawColor(255, 193, 7);
+        doc.setLineWidth(0.8);
+        doc.line(margin + 3, y - 2, margin + 3, y - 2 + sigHeight);
+
+        doc.setFontSize(7);
+        doc.setTextColor(180, 120, 0);
+        doc.setFont("helvetica", "bold");
+        doc.text("O QUE ISSO SIGNIFICA PARA VOCE:", margin + 6, y + 2);
+        y += 5;
+
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.grafite);
+        doc.setFont("helvetica", "normal");
+        doc.text(sigLines, margin + 6, y);
+        y += sigLines.length * 3.5 + 4;
+
+        // Detalhes do nivel
+        if (entregavel.detalhesNivel?.[nivel as NivelId]) {
+          checkPageBreak(12);
+          doc.setFillColor(240, 248, 255);
+          const detLines = doc.splitTextToSize(
+            entregavel.detalhesNivel[nivel as NivelId]!,
+            contentWidth - 12
+          );
+          const detHeight = Math.min(detLines.length * 3.5 + 6, 25);
+          doc.roundedRect(margin + 3, y - 2, contentWidth - 6, detHeight, 1, 1, "F");
+
+          doc.setFontSize(7);
+          doc.setTextColor(17, 63, 75);
+          doc.setFont("helvetica", "bold");
+          doc.text(`NO SEU NIVEL (${nivelData?.nome || ""}):`, margin + 6, y + 2);
+          y += 5;
+
+          doc.setFontSize(8);
+          doc.setTextColor(...COLORS.grafite);
+          doc.setFont("helvetica", "normal");
+          doc.text(detLines.slice(0, 5), margin + 6, y);
+          y += Math.min(detLines.length, 5) * 3.5 + 4;
+        }
+
+        y += 2;
+      });
+
+      y += 4;
     });
   }
 

@@ -3,7 +3,7 @@ import type { Proposta, NivelId } from "@/types";
 import { formatCurrency, formatDate } from "./formatting";
 import { modalidades, niveisMap } from "@/data/modalidades";
 import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
-import { pilares, entregavelDisponivelNoNivel } from "@/data/entregaveis";
+import { getPilaresParaModalidadeENivel } from "@/data/entregaveis";
 
 const COLORS = {
   grafite: [34, 34, 34] as [number, number, number],
@@ -402,16 +402,16 @@ export async function generateProposalPDF(proposta: Proposta) {
   }
 
   // ========= ENTREGAVEIS DO PACOTE =========
-  if (nivel) {
+  if (nivel && modalidade) {
     y += 2;
     sectionTitle(`ENTREGAVEIS DO PACOTE ${nivelData?.nome || ""}`);
 
-    pilares.forEach((pilar) => {
-      const entregaveisDisponiveis = pilar.entregaveis.filter((e) =>
-        entregavelDisponivelNoNivel(e, nivel as NivelId)
-      );
+    // Filter pilares by modalidade AND nivel
+    const pilaresVisiveis = getPilaresParaModalidadeENivel(modalidade, nivel as NivelId);
 
-      if (entregaveisDisponiveis.length === 0) return;
+    pilaresVisiveis.forEach((pilar) => {
+      // Already filtered by modalidade and nivel
+      if (pilar.entregaveis.length === 0) return;
 
       // Pilar header
       checkPageBreak(15);
@@ -424,7 +424,7 @@ export async function generateProposalPDF(proposta: Proposta) {
       y += 10;
 
       // Entregaveis
-      entregaveisDisponiveis.forEach((entregavel) => {
+      pilar.entregaveis.forEach((entregavel) => {
         checkPageBreak(25);
 
         // Nome

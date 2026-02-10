@@ -3,37 +3,65 @@
 import { useState } from "react";
 import { useCartStore } from "@/store/useCartStore";
 import { experienceFlixAvulso, funnelPagesAvulso } from "@/data/tecnologiaAvulsa";
-import { niveis } from "@/data/modalidades";
+import { getPilaresParaModalidadeENivel, contarEntregaveisParaModalidade } from "@/data/entregaveis";
+import { niveis, niveisMap, modalidades } from "@/data/modalidades";
 import { formatCurrency } from "@/utils/formatting";
-import type { NivelId } from "@/types";
+import type { NivelId, CoProdutorConfig } from "@/types";
 
-type FunnelModo = "pacote" | "custom";
+// Significados for Experience Flix plans (from V0.8 spec)
+const FLIX_SIGNIFICADOS: Record<NivelId, string> = {
+  starter: "Sua propria Netflix de cursos. Plataforma profissional, 100% whitelabel, com sua marca e dominio. Seus alunos acham que voce desenvolveu do zero. Engajamento sobe, cancelamentos caem.",
+  professional: "3 plataformas rodando + servico completo de design e postagem. E como ter uma produtora no bolso. Voce cria multiplos produtos (basico, intermediario, avancado) ou segmenta audiencias diferentes.",
+  business: "Membros ilimitados + comunidade integrada. Infraestrutura enterprise. Escale sem se preocupar com custos por aluno. Ideal para quem ja tem audiencia grande ou quer crescer sem limites.",
+  scale: "Ecossistema completo com app nativo. Seus alunos baixam SEU app nas lojas. Infraestrutura de unicornio. Aulas ao vivo integradas. E o nivel maximo de profissionalismo e tecnologia.",
+};
+
+// Significados for Funnel Pages plans (from V0.8 spec)
+const FUNNEL_SIGNIFICADOS: Record<string, string> = {
+  funnel_starter: "Funil profissional completo. Squad desenvolve tudo: copy persuasivo, design que converte, codigo otimizado. Voce so valida e publica. Economia de dezenas de milhares em agencias.",
+  funnel_professional: "3 funis profissionais + automacoes completas. Voce tem funil para cada etapa da jornada: captura (isca), aquecimento (evento) e conversao (sessao/aplicacao). Maquina de conversao montada.",
+  funnel_business: "5 funis + nutricao automatizada. Funil completo de conversao em multiplos produtos. Voce pode vender diferentes solucoes ou testar variacoes do mesmo funil. Sequencias de e-mail automaticas nutrem seus leads.",
+  funnel_scale: "7 funis + IA de pre-vendas. Maquina de conversao automatizada. Multiplos funis para diferentes publicos, produtos e testes. IA qualifica leads antes de chegarem em voce. Eficiencia maxima.",
+};
 
 export default function TecnologiaAvulsa() {
   const carrinho = useCartStore((s) => s.carrinho);
   const setStep = useCartStore((s) => s.setStep);
   const setExperienceFlixAvulso = useCartStore((s) => s.setExperienceFlixAvulso);
   const setFunnelPagesAvulso = useCartStore((s) => s.setFunnelPagesAvulso);
+  const setCoprodutor = useCartStore((s) => s.setCoprodutor);
 
-  // Local state for Funnel Pages selection
-  const [funnelModo, setFunnelModo] = useState<FunnelModo>("pacote");
-  const [funnelCustomQtd, setFunnelCustomQtd] = useState(1);
+  // Local state for selections
   const [selectedFunnelPacote, setSelectedFunnelPacote] = useState<string | null>(null);
+  const [funisExtras, setFunisExtras] = useState(0);
+  const [showEntregaveis, setShowEntregaveis] = useState(false);
+  const [expandedFlix, setExpandedFlix] = useState<NivelId | null>(null);
+  const [expandedFunnel, setExpandedFunnel] = useState<string | null>(null);
 
   // Determine context
-  const isStandalone = carrinho.tipoProposta === "tecnologia";
+  const { modalidade, nivel, coprodutor } = carrinho;
   const isAddingToProgram = carrinho.tipoProposta === "programa" || carrinho.tipoProposta === "combinado";
 
   // Current selections
   const selectedFlix = carrinho.tecnologiaAvulsa?.experienceFlix?.plano;
   const selectedFunnel = carrinho.tecnologiaAvulsa?.funnelPages;
 
+  // Co-produtor is only available for Business and Scale
+  const coprodutorDisponivel = nivel === "business" || nivel === "scale";
+
+  // Get entregaveis for this modalidade and nivel
+  const pilaresVisiveis = modalidade && nivel
+    ? getPilaresParaModalidadeENivel(modalidade, nivel)
+    : [];
+  const totalEntregaveis = modalidade && nivel
+    ? contarEntregaveisParaModalidade(modalidade, nivel)
+    : 0;
+
+  const modalidadeInfo = modalidade ? modalidades[modalidade] : null;
+  const nivelInfo = nivel ? niveisMap[nivel] : null;
+
   const handleBack = () => {
-    if (isStandalone) {
-      setStep("home");
-    } else {
-      setStep("nivel");
-    }
+    setStep("nivel");
   };
 
   const handleContinue = () => {
@@ -46,34 +74,82 @@ export default function TecnologiaAvulsa() {
 
   const handleSelectFlix = (plano: NivelId | null) => {
     setExperienceFlixAvulso(plano);
+    if (plano) {
+      setExpandedFlix(plano);
+    }
   };
 
   const handleSelectFunnelPacote = (pacoteId: string) => {
     const pacote = funnelPagesAvulso.pacotesSugeridos.find((p) => p.id === pacoteId);
     if (pacote) {
       setSelectedFunnelPacote(pacoteId);
+      setExpandedFunnel(pacoteId);
+      // Calculate total with extras
+      const totalFunis = pacote.funis + funisExtras;
+      const precoExtras = funisExtras * 100;
       setFunnelPagesAvulso({
         modo: "pacote",
         pacoteId,
-        quantidade: pacote.funis,
+        quantidade: totalFunis,
         tipos: pacote.tipos,
-        mensal: pacote.preco,
+        mensal: pacote.preco + precoExtras,
       });
     }
   };
 
-  const handleSelectFunnelCustom = () => {
-    const preco = funnelCustomQtd * funnelPagesAvulso.precoBase.precoPorFunil;
-    setFunnelPagesAvulso({
-      modo: "custom",
-      quantidade: funnelCustomQtd,
-      mensal: preco,
-    });
+  const handleFunisExtrasChange = (delta: number) => {
+    const newValue = Math.max(0, Math.min(20, funisExtras + delta));
+    setFunisExtras(newValue);
+
+    // Update funnel pages if a package is selected
+    if (selectedFunnelPacote) {
+      const pacote = funnelPagesAvulso.pacotesSugeridos.find((p) => p.id === selectedFunnelPacote);
+      if (pacote) {
+        const totalFunis = pacote.funis + newValue;
+        const precoExtras = newValue * 100;
+        setFunnelPagesAvulso({
+          modo: "pacote",
+          pacoteId: selectedFunnelPacote,
+          quantidade: totalFunis,
+          tipos: pacote.tipos,
+          mensal: pacote.preco + precoExtras,
+        });
+      }
+    }
+  };
+
+  const handleRemoveFlix = () => {
+    setExperienceFlixAvulso(null);
+    setExpandedFlix(null);
   };
 
   const handleRemoveFunnel = () => {
     setFunnelPagesAvulso(null);
     setSelectedFunnelPacote(null);
+    setFunisExtras(0);
+    setExpandedFunnel(null);
+  };
+
+  const handleCoprodutorToggle = () => {
+    if (coprodutor?.ativo) {
+      setCoprodutor(null);
+    } else {
+      setCoprodutor({
+        ativo: true,
+        nome: "",
+        email: "",
+        percentualComissao: 10,
+        observacoes: "",
+      });
+    }
+  };
+
+  const handleCoprodutorChange = (field: keyof CoProdutorConfig, value: string | number | boolean) => {
+    if (!coprodutor) return;
+    setCoprodutor({
+      ...coprodutor,
+      [field]: value,
+    });
   };
 
   const hasTech = selectedFlix || selectedFunnel;
@@ -88,36 +164,131 @@ export default function TecnologiaAvulsa() {
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
-        {isStandalone ? "Voltar ao inicio" : "Voltar para niveis"}
+        Voltar para niveis
       </button>
 
       <div className="text-center mb-8">
+        <div className="flex items-center justify-center gap-2 mb-3">
+          {modalidadeInfo && (
+            <span
+              className="font-play text-xs font-bold tracking-wider px-3 py-1 rounded text-white"
+              style={{ backgroundColor: modalidadeInfo.cor }}
+            >
+              {modalidadeInfo.nome}
+            </span>
+          )}
+          {nivelInfo && (
+            <span
+              className="font-play text-xs font-bold tracking-wider px-3 py-1 rounded text-white"
+              style={{ backgroundColor: nivelInfo.cor }}
+            >
+              {nivelInfo.nome}
+            </span>
+          )}
+        </div>
         <h2 className="font-kanit font-bold text-2xl md:text-3xl text-blenduca-grafite mb-2">
-          {isAddingToProgram ? "Adicionar Tecnologia ao seu Pacote" : "Escolha sua Tecnologia"}
+          Personalize seu {modalidadeInfo?.nome}
         </h2>
         <p className="font-kanit text-sm text-blenduca-cinza-medio">
-          {isAddingToProgram
-            ? "Tecnologia opcional para potencializar seu programa de mentoria"
-            : "Plataformas profissionais para escalar seu negocio digital"}
+          Adicione tecnologia para potencializar seu programa de mentoria
         </p>
       </div>
 
+      {/* ENTREGAVEIS TOGGLE BUTTON */}
+      <button
+        onClick={() => setShowEntregaveis(!showEntregaveis)}
+        className="w-full mb-6 py-3 px-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 font-kanit text-sm text-blenduca-grafite"
+      >
+        <span>{showEntregaveis ? "▲" : "📋"}</span>
+        <span>
+          {showEntregaveis
+            ? "Fechar entregaveis"
+            : `Ver todos os ${totalEntregaveis} entregaveis inclusos`}
+        </span>
+      </button>
+
+      {/* ENTREGAVEIS SECTION (filtered by modalidade) */}
+      {showEntregaveis && (
+        <div className="mb-8 bg-white border border-gray-100 rounded-xl p-5 animate-fade-in-up">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-2xl">📋</span>
+            <div>
+              <h3 className="font-kanit font-bold text-base text-blenduca-grafite">
+                Entregaveis do {modalidadeInfo?.nome} {nivelInfo?.nome}
+              </h3>
+              <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                {totalEntregaveis} entregaveis inclusos no seu pacote
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {pilaresVisiveis.map((pilar) => {
+              if (pilar.entregaveis.length === 0) return null;
+
+              return (
+                <div key={pilar.id} className="border-t border-gray-100 pt-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">{pilar.icone}</span>
+                    <h4
+                      className="font-kanit font-bold text-sm uppercase tracking-wide"
+                      style={{ color: pilar.cor }}
+                    >
+                      {pilar.nome}
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {pilar.entregaveis.map((entregavel) => (
+                      <div
+                        key={entregavel.id}
+                        className="bg-gray-50/50 border border-gray-100 rounded-lg p-3"
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="text-base shrink-0">{entregavel.icone}</span>
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-kanit font-semibold text-sm text-blenduca-grafite mb-1">
+                              {entregavel.nome}
+                            </h5>
+                            {nivel && entregavel.detalhesNivel?.[nivel] && (
+                              <div className="bg-blue-50/50 rounded p-2">
+                                <p className="font-kanit text-[10px] font-bold text-blue-700 uppercase mb-1">
+                                  No seu nivel ({nivelInfo?.nome})
+                                </p>
+                                <p className="font-kanit text-xs text-blenduca-grafite whitespace-pre-line">
+                                  {entregavel.detalhesNivel[nivel]}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* EXPERIENCE FLIX SECTION */}
-      <div className="mb-10">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">📺</span>
+      <div className="mb-10 bg-white border border-gray-100 rounded-xl p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-2xl">🎬</span>
           <h3 className="font-kanit font-bold text-xl text-blenduca-grafite">
-            Experience Flix
+            Experience Flix - Plataforma de Cursos
           </h3>
         </div>
-        <p className="font-kanit text-sm text-blenduca-cinza-medio mb-4">
-          Plataforma de cursos online estilo Netflix - crie sua propria area de membros
+        <p className="font-kanit text-sm text-blenduca-cinza-medio mb-6">
+          Sua propria Netflix de cursos - plataforma 100% whitelabel
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           {niveis.map((nivel) => {
             const flix = experienceFlixAvulso[nivel.id];
             const isSelected = selectedFlix === nivel.id;
+            const isExpanded = expandedFlix === nivel.id;
 
             return (
               <div
@@ -145,19 +316,6 @@ export default function TecnologiaAvulsa() {
                     {flix.descricao}
                   </p>
 
-                  <div className="space-y-1 mb-3">
-                    <p className="font-kanit text-xs text-blenduca-grafite">
-                      {typeof flix.limites.areas === "number"
-                        ? `${flix.limites.areas} área${flix.limites.areas > 1 ? "s" : ""} de membros`
-                        : "Áreas ilimitadas"}
-                    </p>
-                    <p className="font-kanit text-xs text-blenduca-grafite">
-                      {typeof flix.limites.usuariosAtivos === "number"
-                        ? `Até ${flix.limites.usuariosAtivos} usuarios ativos`
-                        : "Usuarios ilimitados"}
-                    </p>
-                  </div>
-
                   <div className="border-t border-gray-100 pt-3">
                     {flix.investimento.entrada && flix.investimento.entrada > 0 && (
                       <p className="font-kanit text-xs text-blenduca-cinza-medio">
@@ -184,208 +342,388 @@ export default function TecnologiaAvulsa() {
             );
           })}
         </div>
-      </div>
 
-      {/* FUNNEL PAGES SECTION */}
-      <div className="mb-10">
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">🚀</span>
-          <h3 className="font-kanit font-bold text-xl text-blenduca-grafite">
-            Funnel Pages
-          </h3>
-        </div>
-        <p className="font-kanit text-sm text-blenduca-cinza-medio mb-4">
-          Funis de vendas profissionais - copy, design e desenvolvimento inclusos
-        </p>
-
-        {/* Funnel mode tabs */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setFunnelModo("pacote")}
-            className={`px-4 py-2 rounded-lg font-kanit text-sm font-medium transition-all ${
-              funnelModo === "pacote"
-                ? "bg-blenduca-grafite text-white"
-                : "bg-gray-100 text-blenduca-grafite hover:bg-gray-200"
-            }`}
-          >
-            Pacotes Sugeridos
-          </button>
-          <button
-            onClick={() => setFunnelModo("custom")}
-            className={`px-4 py-2 rounded-lg font-kanit text-sm font-medium transition-all ${
-              funnelModo === "custom"
-                ? "bg-blenduca-grafite text-white"
-                : "bg-gray-100 text-blenduca-grafite hover:bg-gray-200"
-            }`}
-          >
-            Montar Customizado
-          </button>
-        </div>
-
-        {funnelModo === "pacote" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {funnelPagesAvulso.pacotesSugeridos.map((pacote) => {
-              const isSelected = selectedFunnelPacote === pacote.id;
-
-              return (
-                <div
-                  key={pacote.id}
-                  className={`bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-lg ${
-                    isSelected ? "border-blenduca-vermelho shadow-lg" : "border-gray-100 hover:border-blenduca-vermelho/50"
-                  }`}
-                  onClick={() => handleSelectFunnelPacote(pacote.id)}
-                >
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-play text-[10px] font-bold tracking-wider px-2 py-1 rounded bg-blenduca-vermelho/10 text-blenduca-vermelho">
-                        {pacote.nome}
-                      </span>
-                      {isSelected && (
-                        <span className="text-green-500 text-lg">✓</span>
-                      )}
-                    </div>
-
-                    <p className="font-kanit text-sm font-medium text-blenduca-grafite mb-2">
-                      {pacote.descricao}
-                    </p>
-
-                    {pacote.tipos && (
-                      <div className="space-y-1 mb-3">
-                        {pacote.tipos.map((tipo, i) => (
-                          <p key={i} className="font-kanit text-xs text-blenduca-cinza-medio flex items-start gap-1">
-                            <span className="text-green-500 mt-0.5">•</span>
-                            {tipo}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="border-t border-gray-100 pt-3">
-                      <p className="font-kanit font-bold text-lg text-blenduca-grafite">
-                        {formatCurrency(pacote.preco)}
-                        <span className="text-xs font-normal text-blenduca-cinza-medio">/mes</span>
-                      </p>
-                    </div>
-
-                    <button
-                      className={`w-full mt-3 py-2 rounded-lg font-kanit font-semibold text-sm transition-all ${
-                        isSelected
-                          ? "bg-blenduca-vermelho text-white"
-                          : "bg-gray-100 text-blenduca-grafite hover:bg-gray-200"
-                      }`}
-                    >
-                      {isSelected ? "Selecionado ✓" : "Selecionar"}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl border border-gray-100 p-6">
-            <h4 className="font-kanit font-semibold text-lg text-blenduca-grafite mb-4">
-              Monte seu pacote personalizado
+        {/* Expanded Flix Details */}
+        {selectedFlix && experienceFlixAvulso[selectedFlix] && (() => {
+          const flixData = experienceFlixAvulso[selectedFlix];
+          return (
+          <div className="mt-4 bg-gray-50 rounded-lg p-4 animate-fade-in-up">
+            <h4 className="font-kanit font-bold text-sm text-blenduca-grafite mb-3">
+              {flixData.nome} - Detalhes
             </h4>
-            <p className="font-kanit text-sm text-blenduca-cinza-medio mb-4">
-              Cada funil inclui: Copy + Design + Desenvolvimento + Integracao
-            </p>
 
-            <div className="flex items-center gap-4 mb-4">
-              <label className="font-kanit text-sm text-blenduca-grafite">
-                Quantidade de funis:
-              </label>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setFunnelCustomQtd(Math.max(1, funnelCustomQtd - 1))}
-                  className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold"
-                >
-                  -
-                </button>
-                <span className="w-12 text-center font-kanit font-bold text-lg">
-                  {funnelCustomQtd}
-                </span>
-                <button
-                  onClick={() => setFunnelCustomQtd(Math.min(20, funnelCustomQtd + 1))}
-                  className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold"
-                >
-                  +
-                </button>
-              </div>
+            {/* Significado */}
+            <div className="bg-amber-50/50 border-l-2 border-amber-400 p-3 rounded-r mb-4">
+              <p className="font-kanit text-[10px] font-bold text-amber-700 uppercase mb-1">
+                O que isso significa para voce
+              </p>
+              <p className="font-kanit text-xs text-blenduca-grafite">
+                {FLIX_SIGNIFICADOS[selectedFlix]}
+              </p>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            {/* Recursos */}
+            <div className="mb-4">
+              <p className="font-kanit text-xs font-bold text-blenduca-grafite mb-2">
+                Recursos inclusos:
+              </p>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                {flixData.recursos.map((recurso, i) => (
+                  <li key={i} className="flex items-start gap-2 font-kanit text-xs text-blenduca-cinza-medio">
+                    <span className="text-green-500 mt-0.5">✓</span>
+                    {recurso}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Investimento */}
+            <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100">
               <div>
-                <p className="font-kanit text-sm text-blenduca-cinza-medio">
-                  {funnelCustomQtd} funil{funnelCustomQtd > 1 ? "s" : ""} x {formatCurrency(100)}/mes
-                </p>
-                <p className="font-kanit font-bold text-xl text-blenduca-grafite">
-                  {formatCurrency(funnelCustomQtd * 100)}/mes
+                {flixData.investimento.entrada && flixData.investimento.entrada > 0 && (
+                  <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                    Entrada: {formatCurrency(flixData.investimento.entrada)}
+                  </p>
+                )}
+                <p className="font-kanit font-bold text-lg text-blenduca-grafite">
+                  {formatCurrency(flixData.investimento.mensal)}/mes
                 </p>
               </div>
               <button
-                onClick={handleSelectFunnelCustom}
-                className="px-4 py-2 bg-blenduca-vermelho text-white font-kanit font-semibold rounded-lg hover:bg-blenduca-vermelho-dark transition-colors"
+                onClick={handleRemoveFlix}
+                className="px-3 py-1 text-xs font-kanit text-blenduca-cinza-medio hover:text-blenduca-vermelho transition-colors"
               >
-                Adicionar ao carrinho
+                Remover
               </button>
             </div>
           </div>
-        )}
-
-        {/* Remove funnel button */}
-        {selectedFunnel && (
-          <button
-            onClick={handleRemoveFunnel}
-            className="mt-4 px-4 py-2 text-sm font-kanit text-blenduca-cinza-medio hover:text-blenduca-vermelho transition-colors"
-          >
-            Remover Funnel Pages do carrinho
-          </button>
-        )}
+          );
+        })()}
       </div>
 
-      {/* What's included */}
-      <div className="bg-white rounded-xl border border-gray-100 p-6 mb-8">
-        <h4 className="font-kanit font-semibold text-lg text-blenduca-grafite mb-4">
-          O que cada funil inclui
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {funnelPagesAvulso.oqueCadaFunilInclui.map((item, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <span className="text-green-500 mt-1">✓</span>
-              <div>
-                <p className="font-kanit font-medium text-sm text-blenduca-grafite">
-                  {item.item}
-                </p>
-                <p className="font-kanit text-xs text-blenduca-cinza-medio">
-                  {item.significado}
-                </p>
-              </div>
-            </div>
-          ))}
+      {/* FUNNEL PAGES SECTION */}
+      <div className="mb-10 bg-white border border-gray-100 rounded-xl p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-2xl">📄</span>
+          <h3 className="font-kanit font-bold text-xl text-blenduca-grafite">
+            Funnel Pages - Funis de Vendas
+          </h3>
         </div>
+        <p className="font-kanit text-sm text-blenduca-cinza-medio mb-6">
+          Funis profissionais completos: copy + design + desenvolvimento
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          {funnelPagesAvulso.pacotesSugeridos.map((pacote) => {
+            const isSelected = selectedFunnelPacote === pacote.id;
+
+            return (
+              <div
+                key={pacote.id}
+                className={`bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-lg ${
+                  isSelected ? "border-blenduca-vermelho shadow-lg" : "border-gray-100 hover:border-blenduca-vermelho/50"
+                }`}
+                onClick={() => handleSelectFunnelPacote(pacote.id)}
+              >
+                <div className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-play text-[10px] font-bold tracking-wider px-2 py-1 rounded bg-blenduca-vermelho/10 text-blenduca-vermelho">
+                      {pacote.nome}
+                    </span>
+                    {isSelected && (
+                      <span className="text-green-500 text-lg">✓</span>
+                    )}
+                  </div>
+
+                  <p className="font-kanit text-sm font-medium text-blenduca-grafite mb-2">
+                    {pacote.descricao}
+                  </p>
+
+                  <p className="font-kanit text-xs text-blenduca-cinza-medio mb-3">
+                    {pacote.funis} funis inclusos
+                  </p>
+
+                  <div className="border-t border-gray-100 pt-3">
+                    <p className="font-kanit font-bold text-lg text-blenduca-grafite">
+                      {formatCurrency(pacote.preco)}
+                      <span className="text-xs font-normal text-blenduca-cinza-medio">/mes</span>
+                    </p>
+                  </div>
+
+                  <button
+                    className={`w-full mt-3 py-2 rounded-lg font-kanit font-semibold text-sm transition-all ${
+                      isSelected
+                        ? "bg-blenduca-vermelho text-white"
+                        : "bg-gray-100 text-blenduca-grafite hover:bg-gray-200"
+                    }`}
+                  >
+                    {isSelected ? "Selecionado ✓" : "Selecionar"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Expanded Funnel Details */}
+        {selectedFunnelPacote && (
+          <div className="mt-4 bg-gray-50 rounded-lg p-4 animate-fade-in-up">
+            {(() => {
+              const pacote = funnelPagesAvulso.pacotesSugeridos.find((p) => p.id === selectedFunnelPacote);
+              if (!pacote) return null;
+
+              return (
+                <>
+                  <h4 className="font-kanit font-bold text-sm text-blenduca-grafite mb-1">
+                    {pacote.nome} - Detalhes
+                  </h4>
+                  <p className="font-kanit text-xs text-blenduca-cinza-medio mb-3">
+                    {pacote.descricao}
+                  </p>
+
+                  {/* Significado */}
+                  <div className="bg-amber-50/50 border-l-2 border-amber-400 p-3 rounded-r mb-4">
+                    <p className="font-kanit text-[10px] font-bold text-amber-700 uppercase mb-1">
+                      O que isso significa para voce
+                    </p>
+                    <p className="font-kanit text-xs text-blenduca-grafite">
+                      {FUNNEL_SIGNIFICADOS[pacote.id]}
+                    </p>
+                  </div>
+
+                  {/* Tipos de funis */}
+                  {pacote.tipos && (
+                    <div className="mb-4">
+                      <p className="font-kanit text-xs font-bold text-blenduca-grafite mb-2">
+                        Tipos de funis inclusos:
+                      </p>
+                      <ul className="space-y-1">
+                        {pacote.tipos.map((tipo, i) => (
+                          <li key={i} className="flex items-start gap-2 font-kanit text-xs text-blenduca-cinza-medio">
+                            <span className="text-blenduca-vermelho mt-0.5">•</span>
+                            {tipo}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Recursos */}
+                  <div className="mb-4">
+                    <p className="font-kanit text-xs font-bold text-blenduca-grafite mb-2">
+                      O que cada funil inclui:
+                    </p>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                      {funnelPagesAvulso.oqueCadaFunilInclui.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 font-kanit text-xs text-blenduca-cinza-medio">
+                          <span className="text-green-500 mt-0.5">✓</span>
+                          {item.item}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Funis Extras - V0.8 */}
+                  <div className="bg-white rounded-lg p-4 border border-gray-100 mb-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-lg">➕</span>
+                      <h5 className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                        Adicionar funis extras
+                      </h5>
+                    </div>
+
+                    <div className="flex items-center gap-4 mb-2">
+                      <label className="font-kanit text-sm text-blenduca-grafite">
+                        Funis adicionais:
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleFunisExtrasChange(-1); }}
+                          disabled={funisExtras <= 0}
+                          className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold disabled:opacity-50"
+                        >
+                          -
+                        </button>
+                        <span className="w-12 text-center font-kanit font-bold text-lg">
+                          {funisExtras}
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleFunisExtrasChange(1); }}
+                          disabled={(pacote.funis + funisExtras) >= 20}
+                          className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center font-bold disabled:opacity-50"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="font-kanit text-xs text-blenduca-cinza-medio mb-3">
+                      R$ 100/mes por funil adicional
+                    </p>
+
+                    {funisExtras > 0 && (
+                      <div className="bg-amber-50/50 rounded-lg p-3">
+                        <div className="flex justify-between font-kanit text-xs mb-1">
+                          <span className="text-blenduca-cinza-medio">Pacote {pacote.nome}:</span>
+                          <span className="text-blenduca-grafite">{pacote.funis} funis</span>
+                        </div>
+                        <div className="flex justify-between font-kanit text-xs mb-1">
+                          <span className="text-blenduca-cinza-medio">Funis extras:</span>
+                          <span className="text-blenduca-grafite">+{funisExtras} funis (+{formatCurrency(funisExtras * 100)}/mes)</span>
+                        </div>
+                        <div className="flex justify-between font-kanit text-sm font-semibold border-t border-amber-200 pt-2 mt-2">
+                          <span className="text-blenduca-grafite">Total de funis:</span>
+                          <span className="text-blenduca-vermelho">{pacote.funis + funisExtras} funis</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Investimento */}
+                  <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100">
+                    <div>
+                      <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                        {pacote.funis} funis base + {funisExtras} extras
+                      </p>
+                      <p className="font-kanit font-bold text-lg text-blenduca-grafite">
+                        {formatCurrency(pacote.preco + (funisExtras * 100))}/mes
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleRemoveFunnel}
+                      className="px-3 py-1 text-xs font-kanit text-blenduca-cinza-medio hover:text-blenduca-vermelho transition-colors"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
       </div>
+
+      {/* CO-PRODUTOR SECTION (Business/Scale only) */}
+      {coprodutorDisponivel && (
+        <div className="mb-10 bg-white border border-gray-100 rounded-xl p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-2xl">🤝</span>
+            <div>
+              <h3 className="font-kanit font-bold text-base text-blenduca-grafite">
+                Co-produtor
+              </h3>
+              <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                Adicione um co-produtor ao projeto (disponivel para {nivel === "business" ? "Business" : "Scale"})
+              </p>
+            </div>
+          </div>
+
+          <label className={`flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+            coprodutor?.ativo
+              ? "border-blenduca-vermelho bg-blenduca-vermelho/5"
+              : "border-gray-100 hover:border-gray-200"
+          }`}>
+            <input
+              type="checkbox"
+              checked={coprodutor?.ativo ?? false}
+              onChange={handleCoprodutorToggle}
+              className="mt-1 w-5 h-5 rounded border-gray-300 text-blenduca-vermelho focus:ring-blenduca-vermelho"
+            />
+            <div className="flex-1">
+              <span className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                Ativar co-produtor
+              </span>
+              <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                Inclua um parceiro de negocio com percentual de comissao
+              </p>
+            </div>
+          </label>
+
+          {coprodutor?.ativo && (
+            <div className="mt-4 space-y-4 animate-fade-in-up">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-kanit text-xs text-blenduca-cinza-medio mb-1">
+                    Nome do Co-produtor *
+                  </label>
+                  <input
+                    type="text"
+                    value={coprodutor.nome}
+                    onChange={(e) => handleCoprodutorChange("nome", e.target.value)}
+                    placeholder="Nome completo"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg font-kanit text-sm text-blenduca-grafite focus:outline-none focus:ring-2 focus:ring-blenduca-vermelho/20 focus:border-blenduca-vermelho"
+                  />
+                </div>
+                <div>
+                  <label className="block font-kanit text-xs text-blenduca-cinza-medio mb-1">
+                    Email do Co-produtor
+                  </label>
+                  <input
+                    type="email"
+                    value={coprodutor.email}
+                    onChange={(e) => handleCoprodutorChange("email", e.target.value)}
+                    placeholder="email@exemplo.com"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg font-kanit text-sm text-blenduca-grafite focus:outline-none focus:ring-2 focus:ring-blenduca-vermelho/20 focus:border-blenduca-vermelho"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-kanit text-xs text-blenduca-cinza-medio mb-1">
+                  Percentual de Comissao: {coprodutor.percentualComissao}%
+                </label>
+                <input
+                  type="range"
+                  min={1}
+                  max={100}
+                  value={coprodutor.percentualComissao}
+                  onChange={(e) => handleCoprodutorChange("percentualComissao", parseInt(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blenduca-vermelho"
+                />
+                <div className="flex justify-between font-kanit text-[10px] text-blenduca-cinza-medio mt-1">
+                  <span>1%</span>
+                  <span>50%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-kanit text-xs text-blenduca-cinza-medio mb-1">
+                  Observacoes
+                </label>
+                <textarea
+                  value={coprodutor.observacoes}
+                  onChange={(e) => handleCoprodutorChange("observacoes", e.target.value)}
+                  placeholder="Observacoes sobre a parceria..."
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg font-kanit text-sm text-blenduca-grafite focus:outline-none focus:ring-2 focus:ring-blenduca-vermelho/20 focus:border-blenduca-vermelho resize-none"
+                />
+              </div>
+
+              {coprodutor.nome === "" && (
+                <p className="font-kanit text-xs text-amber-600">
+                  * O nome do co-produtor e obrigatorio
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex items-center justify-between">
-        {isAddingToProgram && (
-          <button
-            onClick={handleSkip}
-            className="px-6 py-3 font-kanit font-medium text-blenduca-cinza-medio hover:text-blenduca-grafite transition-colors"
-          >
-            Pular esta etapa →
-          </button>
-        )}
+        <button
+          onClick={handleSkip}
+          className="px-6 py-3 font-kanit font-medium text-blenduca-cinza-medio hover:text-blenduca-grafite transition-colors"
+        >
+          Pular esta etapa →
+        </button>
 
         <button
           onClick={handleContinue}
-          disabled={!hasTech && isStandalone}
-          className={`px-6 py-3 rounded-lg font-kanit font-semibold transition-all ${
-            hasTech || isAddingToProgram
-              ? "bg-blenduca-vermelho text-white hover:bg-blenduca-vermelho-dark"
-              : "bg-gray-200 text-gray-400 cursor-not-allowed"
-          }`}
+          className="px-6 py-3 rounded-lg font-kanit font-semibold bg-blenduca-vermelho text-white hover:bg-blenduca-vermelho-dark transition-all"
         >
-          {hasTech ? "Continuar para Agentes A.I →" : "Selecione pelo menos uma tecnologia"}
+          Continuar para Agentes A.I →
         </button>
       </div>
     </div>

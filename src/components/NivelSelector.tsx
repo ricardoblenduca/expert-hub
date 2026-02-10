@@ -5,7 +5,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { niveis, modalidades } from "@/data/modalidades";
 import { precosMatriz } from "@/data/precosMatriz";
 import { tecnologiaInclusa } from "@/data/tecnologiaInclusa";
-import { pilares, contarEntregaveis, entregavelDisponivelNoNivel } from "@/data/entregaveis";
+import { getPilaresParaModalidadeENivel, contarEntregaveisParaModalidade, entregavelDisponivelNoNivel } from "@/data/entregaveis";
 import { formatCurrency } from "@/utils/formatting";
 import type { NivelId } from "@/types";
 
@@ -81,7 +81,8 @@ export default function NivelSelector() {
           const preco = precosMatriz[nivel.id][modalidade];
           const tech = modalidade === "completo" ? tecnologiaInclusa[nivel.id] : null;
           const isExpanded = expandedNiveis[nivel.id];
-          const totalEntregaveis = contarEntregaveis(nivel.id);
+          const totalEntregaveis = contarEntregaveisParaModalidade(modalidade, nivel.id);
+          const pilaresVisiveis = getPilaresParaModalidadeENivel(modalidade, nivel.id);
 
           return (
             <div
@@ -191,15 +192,12 @@ export default function NivelSelector() {
                   </span>
                 </button>
 
-                {/* Expanded Entregaveis */}
+                {/* Expanded Entregaveis - filtered by modalidade */}
                 {isExpanded && (
                   <div className="mt-6 space-y-6 animate-fade-in-up">
-                    {pilares.map((pilar) => {
-                      const entregaveisDisponiveis = pilar.entregaveis.filter((e) =>
-                        entregavelDisponivelNoNivel(e, nivel.id)
-                      );
-
-                      if (entregaveisDisponiveis.length === 0) return null;
+                    {pilaresVisiveis.map((pilar) => {
+                      // pilaresVisiveis already has filtered entregaveis
+                      if (pilar.entregaveis.length === 0) return null;
 
                       return (
                         <div key={pilar.id} className="border-t border-gray-100 pt-4">
@@ -216,7 +214,7 @@ export default function NivelSelector() {
 
                           {/* Entregaveis */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {entregaveisDisponiveis.map((entregavel) => (
+                            {pilar.entregaveis.map((entregavel) => (
                               <div
                                 key={entregavel.id}
                                 className="bg-gray-50/50 border border-gray-100 rounded-lg p-4"

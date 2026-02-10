@@ -546,3 +546,73 @@ export function entregavelDisponivelNoNivel(
   const detalhe = entregavel.detalhesNivel[nivelId];
   return !!detalhe && detalhe !== "Nao disponivel";
 }
+
+// ============================================
+// PILARES POR MODALIDADE V0.8
+// ============================================
+
+// Config: which pilares are shown for each modalidade
+export const PILARES_POR_MODALIDADE: Record<string, string[]> = {
+  completo: [
+    "implementacao",
+    "estrategia",
+    "conexoes",
+    "performance",
+    "educacao",
+    "resultados",
+    "tecnologia",
+  ],
+  consultoria: [
+    "implementacao",
+    "estrategia",
+    "conexoes",
+    "performance",
+    "educacao",
+    "resultados",
+    // "tecnologia" - REMOVED for consultoria
+  ],
+  comunidade: [
+    // "implementacao" - REMOVED for comunidade
+    // "estrategia" - REMOVED for comunidade
+    "conexoes",
+    "performance",
+    "educacao",
+    "resultados",
+    // "tecnologia" - REMOVED for comunidade
+  ],
+};
+
+// Helper function to get pilares filtered by modalidade
+export function getPilaresParaModalidade(modalidadeId: string): PilarEntregaveis[] {
+  const pilaresPermitidos = PILARES_POR_MODALIDADE[modalidadeId] || PILARES_POR_MODALIDADE.completo;
+  return pilares.filter((pilar) => pilaresPermitidos.includes(pilar.id));
+}
+
+// Helper function to get pilares filtered by modalidade AND nivel
+export function getPilaresParaModalidadeENivel(
+  modalidadeId: string,
+  nivelId: NivelId
+): PilarEntregaveis[] {
+  const pilaresPermitidos = PILARES_POR_MODALIDADE[modalidadeId] || PILARES_POR_MODALIDADE.completo;
+
+  return pilares
+    .filter((pilar) => pilaresPermitidos.includes(pilar.id))
+    .map((pilar) => ({
+      ...pilar,
+      entregaveis: pilar.entregaveis.filter((e) => {
+        if (!e.detalhesNivel) return true;
+        const detalhe = e.detalhesNivel[nivelId];
+        return detalhe && detalhe !== "Nao disponivel";
+      }),
+    }))
+    .filter((pilar) => pilar.entregaveis.length > 0);
+}
+
+// Helper function to count entregaveis for modalidade + nivel
+export function contarEntregaveisParaModalidade(
+  modalidadeId: string,
+  nivelId: NivelId
+): number {
+  const pilaresVisiveis = getPilaresParaModalidadeENivel(modalidadeId, nivelId);
+  return pilaresVisiveis.reduce((total, pilar) => total + pilar.entregaveis.length, 0);
+}

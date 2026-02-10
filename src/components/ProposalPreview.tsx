@@ -5,7 +5,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { formatCurrency, formatDate, generateId } from "@/utils/formatting";
 import { modalidades, niveisMap } from "@/data/modalidades";
 import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
-import { pilares, entregavelDisponivelNoNivel } from "@/data/entregaveis";
+import { getPilaresParaModalidadeENivel } from "@/data/entregaveis";
 import type { Proposta, NivelId } from "@/types";
 
 export default function ProposalPreview() {
@@ -513,18 +513,15 @@ export default function ProposalPreview() {
           </section>
 
           {/* Entregaveis Section */}
-          {nivel && (
+          {nivel && modalidade && (
             <section>
               <SectionTitle>
                 Entregaveis do seu Pacote - {nivelData?.nome}
               </SectionTitle>
               <div className="space-y-6">
-                {pilares.map((pilar) => {
-                  const entregaveisDisponiveis = pilar.entregaveis.filter((e) =>
-                    entregavelDisponivelNoNivel(e, nivel as NivelId)
-                  );
-
-                  if (entregaveisDisponiveis.length === 0) return null;
+                {getPilaresParaModalidadeENivel(modalidade, nivel as NivelId).map((pilar) => {
+                  // Already filtered by modalidade and nivel
+                  if (pilar.entregaveis.length === 0) return null;
 
                   return (
                     <div key={pilar.id}>
@@ -544,7 +541,7 @@ export default function ProposalPreview() {
 
                       {/* Entregaveis */}
                       <div className="space-y-3">
-                        {entregaveisDisponiveis.map((entregavel) => (
+                        {pilar.entregaveis.map((entregavel) => (
                           <div
                             key={entregavel.id}
                             className="bg-gray-50/50 border border-gray-100 rounded-lg p-4"

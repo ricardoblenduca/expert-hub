@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useCartStore } from "@/store/useCartStore";
 import { niveisMap } from "@/data/modalidades";
 import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
-import { pilares, contarEntregaveis, entregavelDisponivelNoNivel } from "@/data/entregaveis";
+import { getPilaresParaModalidadeENivel, contarEntregaveisParaModalidade } from "@/data/entregaveis";
 import { formatCurrency } from "@/utils/formatting";
 import type { NivelId, CoProdutorConfig } from "@/types";
 
@@ -35,7 +35,8 @@ export default function CustomizacoesSection() {
 
   // Co-produtor is only available for Business and Scale
   const coprodutorDisponivel = nivel === "business" || nivel === "scale";
-  const totalEntregaveis = contarEntregaveis(nivel);
+  const totalEntregaveis = contarEntregaveisParaModalidade(modalidade, nivel);
+  const pilaresVisiveis = getPilaresParaModalidadeENivel(modalidade, nivel);
 
   const handleBack = () => {
     setStep("nivel");
@@ -194,12 +195,9 @@ export default function CustomizacoesSection() {
           </div>
 
           <div className="space-y-6">
-            {pilares.map((pilar) => {
-              const entregaveisDisponiveis = pilar.entregaveis.filter((e) =>
-                entregavelDisponivelNoNivel(e, nivel)
-              );
-
-              if (entregaveisDisponiveis.length === 0) return null;
+            {pilaresVisiveis.map((pilar) => {
+              // pilaresVisiveis already has filtered entregaveis by modalidade and nivel
+              if (pilar.entregaveis.length === 0) return null;
 
               return (
                 <div key={pilar.id} className="border-t border-gray-100 pt-4">
@@ -216,7 +214,7 @@ export default function CustomizacoesSection() {
 
                   {/* Entregaveis - without significado */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {entregaveisDisponiveis.map((entregavel) => (
+                    {pilar.entregaveis.map((entregavel) => (
                       <div
                         key={entregavel.id}
                         className="bg-gray-50/50 border border-gray-100 rounded-lg p-3"

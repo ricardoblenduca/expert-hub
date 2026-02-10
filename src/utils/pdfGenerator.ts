@@ -583,6 +583,7 @@ export async function generateProposalPDF(proposta: Proposta) {
   if (resumo.valorDescontoMensal > 0) boxHeight += 14; // V0.14: renamed from valorDesconto
   if (resumo.economia > 0) boxHeight += 6;
   if (resumo.economiaAnualDescontoMensal > 0) boxHeight += 6; // V0.14: renamed
+  if (resumo.economiaAnualTotal > 0) boxHeight += 8; // V0.15: economia total anual
 
   checkPageBreak(boxHeight + 5);
   const boxY = y - 2;
@@ -824,6 +825,19 @@ export async function generateProposalPDF(proposta: Proposta) {
       align: "right",
     });
     y += 6;
+  }
+
+  // V0.15: Economia Total Anual (Setup + 12 × Mensal)
+  if (resumo.economiaAnualTotal > 0) {
+    doc.setFillColor(220, 252, 231); // Light green
+    doc.roundedRect(boxMargin - 2, y, boxRight - boxMargin + 4, 7, 1, 1, "F");
+    doc.setTextColor(21, 128, 61); // Dark green
+    doc.setFont("helvetica", "bold");
+    doc.text("ECONOMIA TOTAL ANUAL:", boxMargin, y + 5);
+    doc.text(formatCurrency(resumo.economiaAnualTotal), boxRight, y + 5, {
+      align: "right",
+    });
+    y += 8;
   }
 
   y = boxY + boxHeight + 6;

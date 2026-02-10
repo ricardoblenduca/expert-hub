@@ -519,6 +519,7 @@ export interface ResumoCarrinho {
   // Economia
   economia: number;
   economiaAnualDescontoMensal: number; // V0.14: renamed
+  economiaAnualTotal: number; // V0.15: desconto setup + (12 × desconto mensal)
 
   // Sugestão de upgrade
   sugestaoUpgrade?: {

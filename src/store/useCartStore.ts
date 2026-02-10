@@ -666,6 +666,7 @@ export const useCartStore = create<StoreState>((set, get) => ({
       totalAnual: 0,
       economia: 0,
       economiaAnualDescontoMensal: 0, // V0.14: renamed from economiaAnualDesconto
+      economiaAnualTotal: 0, // V0.15: desconto setup + (12 × desconto mensal)
     };
 
     // Pacote base (programa)
@@ -777,6 +778,9 @@ export const useCartStore = create<StoreState>((set, get) => ({
     if (modalidade === "completo") {
       resumo.economia = resumo.tecnologiaInclusa;
     }
+
+    // V0.15: Economia total anual = desconto setup + (12 × desconto mensal)
+    resumo.economiaAnualTotal = resumo.valorDescontoSetup + resumo.economiaAnualDescontoMensal;
 
     // Verificar sugestão de upgrade
     resumo.sugestaoUpgrade = get().verificarSugestaoUpgrade();

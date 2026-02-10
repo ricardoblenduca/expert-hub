@@ -13,7 +13,7 @@ export default function CartSidebar() {
   const setMobileCartOpen = useCartStore((s) => s.setMobileCartOpen);
   const addToast = useCartStore((s) => s.addToast);
 
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes, tecnologiaAvulsa, tipoProposta } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes, tecnologiaAvulsa, tipoProposta, centralInteligencia } = carrinho;
   const resumo = calcularResumo();
 
   const modalidadeInfo = modalidade ? modalidades[modalidade] : null;
@@ -24,7 +24,8 @@ export default function CartSidebar() {
   const hasPrograma = modalidade && nivel;
   const hasTech = tecnologiaAvulsa !== null;
   const hasAgents = agentes.length > 0;
-  const hasAnything = hasPrograma || hasTech || hasAgents;
+  const hasCentralInteligencia = centralInteligencia.pacoteSelecionado !== null;
+  const hasAnything = hasPrograma || hasTech || hasAgents || hasCentralInteligencia;
 
   const handleFinalize = () => {
     if (!hasAnything) {
@@ -240,6 +241,42 @@ export default function CartSidebar() {
                 </div>
               </div>
             )}
+
+            {/* Central de Inteligencia - V0.15 */}
+            {hasCentralInteligencia && (
+              <div className="bg-purple-50/50 border border-purple-100 rounded-lg p-4">
+                <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-purple-700 mb-3">
+                  🧠 CENTRAL DE INTELIGENCIA
+                </h3>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-kanit">
+                    <span className="text-blenduca-grafite">
+                      {resumo.centralInteligenciaPacote}
+                    </span>
+                  </div>
+                  {resumo.centralInteligenciaExtras > 0 && (
+                    <div className="flex items-center justify-between text-xs font-kanit">
+                      <span className="text-blenduca-grafite">
+                        +{resumo.centralInteligenciaExtras} assistentes extras
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-xs font-kanit pt-2 border-t border-purple-100">
+                    <span className="text-blenduca-cinza-medio">Total assistentes:</span>
+                    <span className="font-medium text-purple-700">
+                      {resumo.centralInteligenciaQuantidade}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs font-kanit">
+                    <span className="text-blenduca-cinza-medio">Setup:</span>
+                    <span className="font-medium text-blenduca-grafite">
+                      {formatCurrency(resumo.centralInteligenciaSetup)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -247,21 +284,53 @@ export default function CartSidebar() {
       {/* Summary Footer */}
       {hasAnything && (
         <div className="border-t border-gray-100 p-4 space-y-3 bg-gray-50/50">
-          {/* Breakdown */}
+          {/* Breakdown - Investimento Inicial */}
           <div className="space-y-1.5">
-            {resumo.totalSetup > 0 && (
-              <div className="flex justify-between text-xs font-kanit">
-                <span className="text-blenduca-cinza-medio">Setup (unica vez):</span>
-                <span className="font-medium text-blenduca-grafite">
-                  {formatCurrency(resumo.totalSetup)}
-                </span>
-              </div>
+            {resumo.subtotalSetup > 0 && (
+              <>
+                <div className="flex justify-between text-xs font-kanit">
+                  <span className="text-blenduca-cinza-medio">Investimento Inicial:</span>
+                  <span className="font-medium text-blenduca-grafite">
+                    {formatCurrency(resumo.subtotalSetup)}
+                  </span>
+                </div>
+                {/* Desconto Setup - V0.15 */}
+                {resumo.valorDescontoSetup > 0 && (
+                  <div className="flex justify-between text-xs font-kanit">
+                    <span className="text-purple-600">
+                      Desconto Setup{resumo.motivoDescontoSetup ? ` (${resumo.motivoDescontoSetup})` : ""}:
+                    </span>
+                    <span className="font-medium text-purple-600">
+                      -{formatCurrency(resumo.valorDescontoSetup)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between text-xs font-kanit border-t border-gray-200 pt-1">
+                  <span className="text-blenduca-grafite font-medium">Total Inicial:</span>
+                  <span className="font-semibold text-blenduca-grafite">
+                    {formatCurrency(resumo.totalInicialComDesconto)}
+                  </span>
+                </div>
+              </>
             )}
-            {resumo.totalEntrada > 0 && (
+          </div>
+
+          {/* Breakdown - Mensal */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs font-kanit">
+              <span className="text-blenduca-cinza-medio">Subtotal Mensal:</span>
+              <span className="font-medium text-blenduca-grafite">
+                {formatCurrency(resumo.subtotalMensal)}
+              </span>
+            </div>
+            {/* Desconto Mensal - V0.15 */}
+            {resumo.valorDescontoMensal > 0 && (
               <div className="flex justify-between text-xs font-kanit">
-                <span className="text-blenduca-cinza-medio">Entrada:</span>
-                <span className="font-medium text-blenduca-grafite">
-                  {formatCurrency(resumo.totalEntrada)}
+                <span className="text-amber-600">
+                  Desconto Mensal{resumo.motivoDescontoMensal ? ` (${resumo.motivoDescontoMensal})` : ""}:
+                </span>
+                <span className="font-medium text-amber-600">
+                  -{formatCurrency(resumo.valorDescontoMensal)}
                 </span>
               </div>
             )}
@@ -283,15 +352,29 @@ export default function CartSidebar() {
             </div>
           </div>
 
-          {/* Economia */}
-          {resumo.economia > 0 && (
+          {/* Economia - V0.15: updated to show economiaAnualTotal */}
+          {(resumo.economia > 0 || resumo.economiaAnualTotal > 0) && (
             <div className="bg-green-50 rounded-lg p-3 text-center">
-              <p className="font-kanit text-xs text-green-700">
-                💰 Economia em tecnologia inclusa:
-              </p>
-              <p className="font-kanit font-bold text-sm text-green-600">
-                {formatCurrency(resumo.economia)}/mes
-              </p>
+              {resumo.economia > 0 && (
+                <>
+                  <p className="font-kanit text-xs text-green-700">
+                    💰 Economia em tecnologia inclusa:
+                  </p>
+                  <p className="font-kanit font-bold text-sm text-green-600">
+                    {formatCurrency(resumo.economia)}/mes
+                  </p>
+                </>
+              )}
+              {resumo.economiaAnualTotal > 0 && (
+                <div className={resumo.economia > 0 ? "mt-2 pt-2 border-t border-green-200" : ""}>
+                  <p className="font-kanit text-xs text-green-700">
+                    🎉 Economia Total Anual (descontos):
+                  </p>
+                  <p className="font-kanit font-bold text-sm text-green-600">
+                    {formatCurrency(resumo.economiaAnualTotal)}
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

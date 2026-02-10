@@ -2,26 +2,26 @@ import type { PrecosMatriz } from "@/types";
 
 export const precosMatriz: PrecosMatriz = {
   starter: {
-    expert: { entrada: 1500, mensal: 1500 },
-    exper: { entrada: 0, mensal: 1000 },
-    xper: { entrada: 0, mensal: 500 },
+    completo: { entrada: 1500, mensal: 1500 },
+    consultoria: { entrada: 0, mensal: 1000 },
+    comunidade: { entrada: 0, mensal: 500 },
   },
 
   professional: {
-    expert: { entrada: 3000, mensal: 3000 },
-    exper: { entrada: 0, mensal: 2000 },
-    xper: { entrada: 0, mensal: 750 },
+    completo: { entrada: 3000, mensal: 3000 },
+    consultoria: { entrada: 0, mensal: 2000 },
+    comunidade: { entrada: 0, mensal: 750 },
   },
 
   business: {
-    expert: { entrada: 4500, mensal: 4500 },
-    exper: { entrada: 0, mensal: 2500 },
-    xper: { entrada: 0, mensal: 1500 },
+    completo: { entrada: 4500, mensal: 4500 },
+    consultoria: { entrada: 0, mensal: 2500 },
+    comunidade: { entrada: 0, mensal: 1000 },
   },
 
   scale: {
-    expert: { entrada: 7500, mensal: 7500 },
-    exper: { entrada: 0, mensal: 5000 },
-    xper: { entrada: 0, mensal: 2000 },
+    completo: { entrada: 7500, mensal: 7500 },
+    consultoria: { entrada: 0, mensal: 4000 },
+    comunidade: { entrada: 0, mensal: 1500 },
   },
 };

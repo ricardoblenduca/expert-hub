@@ -10,11 +10,26 @@ import type {
   DadosCliente,
   ResumoCarrinho,
   CarrinhoState,
+  TecnologiaNoCarrinho,
 } from "@/types";
 import { precosMatriz } from "@/data/precosMatriz";
-import { tecnologiaInclusa, upgradeExperienceFlixOpcoes } from "@/data/tecnologiaInclusa";
+import {
+  tecnologiaInclusa,
+  upgradeExperienceFlixOpcoes,
+} from "@/data/tecnologiaInclusa";
+import { experienceFlixAvulso, funnelPagesAvulso } from "@/data/tecnologiaAvulsa";
 
-export type Step = "modalidade" | "nivel" | "customizacoes" | "agentes" | "cliente" | "preview";
+// V5.0: New step flow with entry points
+export type Step =
+  | "home" // Tela inicial com 3 pontos de entrada
+  | "modalidade" // Escolha de modalidade (Programas)
+  | "nivel" // Escolha de nível
+  | "customizacoes" // Upgrades (só para Pacote Completo)
+  | "adicionar_tech" // Adicionar tech ao Pacote Consultoria/Comunidade
+  | "tecnologia" // Contratação avulsa de tecnologia
+  | "agentes" // Agentes A.I (pode ser avulso ou adicionar)
+  | "cliente" // Dados do cliente
+  | "preview"; // Preview da proposta
 
 interface Toast {
   id: string;
@@ -30,16 +45,31 @@ interface StoreState {
   // Carrinho
   carrinho: CarrinhoState;
 
+  // Tipo de proposta
+  setTipoProposta: (
+    tipo: "programa" | "tecnologia" | "agentes" | "combinado"
+  ) => void;
+
   // Modalidade & Nivel
   setModalidade: (modalidade: ModalidadeId) => void;
   setNivel: (nivel: NivelId) => void;
 
-  // Upgrades
+  // Tecnologia avulsa
+  setTecnologiaAvulsa: (tech: TecnologiaNoCarrinho | null) => void;
+  setExperienceFlixAvulso: (plano: NivelId | null) => void;
+  setFunnelPagesAvulso: (
+    config: TecnologiaNoCarrinho["funnelPages"] | null
+  ) => void;
+
+  // Upgrades (para Pacote Completo)
   setUpgradeExperienceFlix: (nivel: NivelId | null) => void;
   setFunisExtras: (quantidade: number) => void;
 
   // Agentes AI
-  adicionarAgente: (agente: AgenteAI, config?: Partial<AgenteNoCarrinho>) => void;
+  adicionarAgente: (
+    agente: AgenteAI,
+    config?: Partial<AgenteNoCarrinho>
+  ) => void;
   removerAgente: (agenteId: string) => void;
   atualizarAgente: (agenteId: string, config: Partial<AgenteNoCarrinho>) => void;
 
@@ -57,6 +87,9 @@ interface StoreState {
 
   // Resumo
   calcularResumo: () => ResumoCarrinho;
+
+  // Sugestão de upgrade inteligente
+  verificarSugestaoUpgrade: () => ResumoCarrinho["sugestaoUpgrade"];
 
   // UI
   mobileCartOpen: boolean;
@@ -87,8 +120,10 @@ const initialDadosCliente: DadosCliente = {
 };
 
 const initialCarrinho: CarrinhoState = {
+  tipoProposta: null,
   modalidade: null,
   nivel: null,
+  tecnologiaAvulsa: null,
   upgradeExperienceFlix: null,
   funisExtras: 0,
   agentes: [],
@@ -96,26 +131,36 @@ const initialCarrinho: CarrinhoState = {
   revenueShareObservacoes: "",
 };
 
-function calcularSetupAgente(agente: AgenteAI, config: Partial<AgenteNoCarrinho>): number {
+function calcularSetupAgente(
+  agente: AgenteAI,
+  config: Partial<AgenteNoCarrinho>
+): number {
   let total = agente.investimento.setup;
 
   if (agente.id === "mentor_ai" && config.acoesExtras) {
-    total += (agente.investimento.setupAdicionalPorAcao ?? 0) * config.acoesExtras;
+    total +=
+      (agente.investimento.setupAdicionalPorAcao ?? 0) * config.acoesExtras;
   }
 
   if (agente.id === "comercial_ai" && config.integracoesExtras) {
-    total += (agente.investimento.setupAdicionalPorIntegracao ?? 0) * config.integracoesExtras;
+    total +=
+      (agente.investimento.setupAdicionalPorIntegracao ?? 0) *
+      config.integracoesExtras;
   }
 
   return total;
 }
 
-function calcularMensalAgente(agente: AgenteAI, config: Partial<AgenteNoCarrinho>): number {
+function calcularMensalAgente(
+  agente: AgenteAI,
+  config: Partial<AgenteNoCarrinho>
+): number {
   let total = agente.investimento.mensal;
 
   if (agente.id === "comercial_ai") {
     if (config.numerosExtras) {
-      total += (agente.investimento.adicionalPorNumero ?? 0) * config.numerosExtras;
+      total +=
+        (agente.investimento.adicionalPorNumero ?? 0) * config.numerosExtras;
     }
     if (config.prospeccaoAtiva) {
       total += agente.investimento.prospeccaoAtiva ?? 0;
@@ -126,12 +171,21 @@ function calcularMensalAgente(agente: AgenteAI, config: Partial<AgenteNoCarrinho
 }
 
 export const useCartStore = create<StoreState>((set, get) => ({
-  // Navigation
-  step: "modalidade",
+  // Navigation - Start at home (entry point selection)
+  step: "home",
   setStep: (step) => set({ step }),
 
   // Carrinho
   carrinho: initialCarrinho,
+
+  // Tipo de proposta
+  setTipoProposta: (tipo) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        tipoProposta: tipo,
+      },
+    })),
 
   // Modalidade
   setModalidade: (modalidade) =>
@@ -139,7 +193,9 @@ export const useCartStore = create<StoreState>((set, get) => ({
       carrinho: {
         ...state.carrinho,
         modalidade,
-        // Reset upgrades when changing modality
+        tipoProposta: state.carrinho.tipoProposta || "programa",
+        // Reset tech and upgrades when changing modality
+        tecnologiaAvulsa: null,
         upgradeExperienceFlix: null,
         funisExtras: 0,
       },
@@ -157,7 +213,84 @@ export const useCartStore = create<StoreState>((set, get) => ({
       },
     })),
 
-  // Upgrade Experience Flix
+  // Tecnologia avulsa
+  setTecnologiaAvulsa: (tech) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        tecnologiaAvulsa: tech,
+        tipoProposta: state.carrinho.tipoProposta || "tecnologia",
+      },
+    })),
+
+  setExperienceFlixAvulso: (plano) =>
+    set((state) => {
+      if (!plano) {
+        // Remove Experience Flix
+        const newTech = state.carrinho.tecnologiaAvulsa
+          ? { ...state.carrinho.tecnologiaAvulsa, experienceFlix: undefined }
+          : null;
+        return {
+          carrinho: {
+            ...state.carrinho,
+            tecnologiaAvulsa: newTech?.funnelPages ? newTech : null,
+          },
+        };
+      }
+
+      const flixData = experienceFlixAvulso[plano];
+      const newFlix = {
+        plano,
+        mensal: flixData.investimento.mensal,
+        entrada: flixData.investimento.entrada ?? 0,
+      };
+
+      return {
+        carrinho: {
+          ...state.carrinho,
+          tecnologiaAvulsa: {
+            ...state.carrinho.tecnologiaAvulsa,
+            experienceFlix: newFlix,
+          },
+          tipoProposta:
+            state.carrinho.tipoProposta === "programa"
+              ? "combinado"
+              : state.carrinho.tipoProposta || "tecnologia",
+        },
+      };
+    }),
+
+  setFunnelPagesAvulso: (config) =>
+    set((state) => {
+      if (!config) {
+        // Remove Funnel Pages
+        const newTech = state.carrinho.tecnologiaAvulsa
+          ? { ...state.carrinho.tecnologiaAvulsa, funnelPages: undefined }
+          : null;
+        return {
+          carrinho: {
+            ...state.carrinho,
+            tecnologiaAvulsa: newTech?.experienceFlix ? newTech : null,
+          },
+        };
+      }
+
+      return {
+        carrinho: {
+          ...state.carrinho,
+          tecnologiaAvulsa: {
+            ...state.carrinho.tecnologiaAvulsa,
+            funnelPages: config,
+          },
+          tipoProposta:
+            state.carrinho.tipoProposta === "programa"
+              ? "combinado"
+              : state.carrinho.tipoProposta || "tecnologia",
+        },
+      };
+    }),
+
+  // Upgrade Experience Flix (para Pacote Completo)
   setUpgradeExperienceFlix: (nivel) =>
     set((state) => ({
       carrinho: {
@@ -180,7 +313,7 @@ export const useCartStore = create<StoreState>((set, get) => ({
     set((state) => {
       // Check if already added
       if (state.carrinho.agentes.some((a) => a.agente.id === agente.id)) {
-        get().addToast("Este agente ja foi adicionado", "warning");
+        get().addToast("Este agente já foi adicionado", "warning");
         return state;
       }
 
@@ -199,10 +332,19 @@ export const useCartStore = create<StoreState>((set, get) => ({
 
       get().addToast(`${agente.nome} adicionado!`, "success");
 
+      // Update tipoProposta
+      let tipoProposta = state.carrinho.tipoProposta;
+      if (!tipoProposta) {
+        tipoProposta = "agentes";
+      } else if (tipoProposta === "programa" || tipoProposta === "tecnologia") {
+        tipoProposta = "combinado";
+      }
+
       return {
         carrinho: {
           ...state.carrinho,
           agentes: [...state.carrinho.agentes, novoAgente],
+          tipoProposta,
         },
       };
     }),
@@ -211,7 +353,9 @@ export const useCartStore = create<StoreState>((set, get) => ({
     set((state) => ({
       carrinho: {
         ...state.carrinho,
-        agentes: state.carrinho.agentes.filter((a) => a.agente.id !== agenteId),
+        agentes: state.carrinho.agentes.filter(
+          (a) => a.agente.id !== agenteId
+        ),
       },
     })),
 
@@ -259,7 +403,15 @@ export const useCartStore = create<StoreState>((set, get) => ({
   // Resumo
   calcularResumo: () => {
     const { carrinho } = get();
-    const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes } = carrinho;
+    const {
+      tipoProposta,
+      modalidade,
+      nivel,
+      tecnologiaAvulsa,
+      upgradeExperienceFlix,
+      funisExtras,
+      agentes,
+    } = carrinho;
 
     // Default values
     const resumo: ResumoCarrinho = {
@@ -267,6 +419,8 @@ export const useCartStore = create<StoreState>((set, get) => ({
       pacoteMensal: 0,
       tecnologiaInclusa: 0,
       tecnologiaAvulsoEquivalente: 0,
+      techAvulsaEntrada: 0,
+      techAvulsaMensal: 0,
       upgradeFlixMensal: 0,
       funisExtrasMensal: 0,
       totalUpgradesMensal: 0,
@@ -280,22 +434,22 @@ export const useCartStore = create<StoreState>((set, get) => ({
       economia: 0,
     };
 
-    if (!modalidade || !nivel) return resumo;
+    // Pacote base (programa)
+    if (modalidade && nivel) {
+      const precos = precosMatriz[nivel][modalidade];
+      resumo.pacoteEntrada = precos.entrada;
+      resumo.pacoteMensal = precos.mensal;
 
-    // Pacote base
-    const precos = precosMatriz[nivel][modalidade];
-    resumo.pacoteEntrada = precos.entrada;
-    resumo.pacoteMensal = precos.mensal;
-
-    // Tecnologia inclusa (only for EXPERT)
-    if (modalidade === "expert") {
-      const tech = tecnologiaInclusa[nivel];
-      resumo.tecnologiaInclusa = tech.totalTecnologia.mensal;
-      resumo.tecnologiaAvulsoEquivalente = tech.totalTecnologia.mensal;
+      // Tecnologia inclusa (only for Pacote Completo)
+      if (modalidade === "completo") {
+        const tech = tecnologiaInclusa[nivel];
+        resumo.tecnologiaInclusa = tech.totalTecnologia.mensal;
+        resumo.tecnologiaAvulsoEquivalente = tech.totalTecnologia.mensal;
+      }
     }
 
-    // Upgrade Experience Flix
-    if (modalidade === "expert" && upgradeExperienceFlix) {
+    // Upgrade Experience Flix (para Pacote Completo)
+    if (modalidade === "completo" && upgradeExperienceFlix && nivel) {
       const upgrade = upgradeExperienceFlixOpcoes.find(
         (u) => u.de === nivel && u.para === upgradeExperienceFlix
       );
@@ -304,9 +458,24 @@ export const useCartStore = create<StoreState>((set, get) => ({
       }
     }
 
-    // Funis extras
-    resumo.funisExtrasMensal = funisExtras * 100;
-    resumo.totalUpgradesMensal = resumo.upgradeFlixMensal + resumo.funisExtrasMensal;
+    // Funis extras (para Pacote Completo)
+    if (modalidade === "completo") {
+      resumo.funisExtrasMensal = funisExtras * 100;
+    }
+
+    resumo.totalUpgradesMensal =
+      resumo.upgradeFlixMensal + resumo.funisExtrasMensal;
+
+    // Tecnologia avulsa
+    if (tecnologiaAvulsa) {
+      if (tecnologiaAvulsa.experienceFlix) {
+        resumo.techAvulsaEntrada += tecnologiaAvulsa.experienceFlix.entrada;
+        resumo.techAvulsaMensal += tecnologiaAvulsa.experienceFlix.mensal;
+      }
+      if (tecnologiaAvulsa.funnelPages) {
+        resumo.techAvulsaMensal += tecnologiaAvulsa.funnelPages.mensal;
+      }
+    }
 
     // Agentes AI
     resumo.agentesSetup = agentes.reduce((sum, a) => sum + a.setupTotal, 0);
@@ -314,17 +483,80 @@ export const useCartStore = create<StoreState>((set, get) => ({
 
     // Totais
     resumo.totalSetup = resumo.agentesSetup;
-    resumo.totalEntrada = resumo.pacoteEntrada;
-    resumo.subtotalMensal = resumo.pacoteMensal + resumo.totalUpgradesMensal + resumo.agentesMensal;
+    resumo.totalEntrada = resumo.pacoteEntrada + resumo.techAvulsaEntrada;
+    resumo.subtotalMensal =
+      resumo.pacoteMensal +
+      resumo.totalUpgradesMensal +
+      resumo.techAvulsaMensal +
+      resumo.agentesMensal;
     resumo.totalMensal = resumo.subtotalMensal;
     resumo.totalAnual = resumo.totalMensal * 12;
 
-    // Economia (tecnologia inclusa no EXPERT)
-    if (modalidade === "expert") {
+    // Economia (tecnologia inclusa no Pacote Completo)
+    if (modalidade === "completo") {
       resumo.economia = resumo.tecnologiaInclusa;
     }
 
+    // Verificar sugestão de upgrade
+    resumo.sugestaoUpgrade = get().verificarSugestaoUpgrade();
+
     return resumo;
+  },
+
+  // Sugestão de upgrade inteligente
+  verificarSugestaoUpgrade: () => {
+    const { carrinho } = get();
+    const { modalidade, nivel, tecnologiaAvulsa } = carrinho;
+
+    // Só sugerir para Consultoria ou Comunidade com tecnologia
+    if (
+      !nivel ||
+      !modalidade ||
+      modalidade === "completo" ||
+      !tecnologiaAvulsa
+    ) {
+      return undefined;
+    }
+
+    const hasFlixAvulso = !!tecnologiaAvulsa.experienceFlix;
+    const hasFunnelAvulso = !!tecnologiaAvulsa.funnelPages;
+
+    if (!hasFlixAvulso && !hasFunnelAvulso) {
+      return undefined;
+    }
+
+    // Calcular custo atual
+    const precoBase = precosMatriz[nivel][modalidade].mensal;
+    const flixMensal = tecnologiaAvulsa.experienceFlix?.mensal ?? 0;
+    const funnelMensal = tecnologiaAvulsa.funnelPages?.mensal ?? 0;
+    const totalMontado = precoBase + flixMensal + funnelMensal;
+
+    // Pacote Completo equivalente
+    const pacoteCompleto = precosMatriz[nivel].completo.mensal;
+
+    if (totalMontado > pacoteCompleto) {
+      const economia = totalMontado - pacoteCompleto;
+      const pacoteNome =
+        modalidade === "consultoria" ? "Pacote Consultoria" : "Pacote Comunidade";
+
+      return {
+        mostrar: true,
+        mensagem: `💡 Dica: O Pacote Completo sai mais barato!
+
+Você está montando:
+${pacoteNome}: R$ ${precoBase.toLocaleString("pt-BR")}/mês
+${hasFlixAvulso ? `+ Experience Flix: R$ ${flixMensal.toLocaleString("pt-BR")}/mês` : ""}
+${hasFunnelAvulso ? `+ Funnel Pages: R$ ${funnelMensal.toLocaleString("pt-BR")}/mês` : ""}
+= R$ ${totalMontado.toLocaleString("pt-BR")}/mês
+
+MAS o Pacote Completo ${nivel.toUpperCase()} custa apenas R$ ${pacoteCompleto.toLocaleString("pt-BR")}/mês
+
+Economia: R$ ${economia.toLocaleString("pt-BR")}/mês`,
+        economia,
+      };
+    }
+
+    return undefined;
   },
 
   // UI
@@ -350,7 +582,7 @@ export const useCartStore = create<StoreState>((set, get) => ({
   // Reset
   resetCarrinho: () =>
     set({
-      step: "modalidade",
+      step: "home",
       carrinho: initialCarrinho,
       dadosCliente: initialDadosCliente,
     }),

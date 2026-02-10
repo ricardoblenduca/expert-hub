@@ -14,8 +14,8 @@ export default function CustomizacoesSection() {
 
   const { modalidade, nivel, upgradeExperienceFlix, funisExtras } = carrinho;
 
-  // Only show for EXPERT modalidade
-  if (modalidade !== "expert" || !nivel) {
+  // Only show for Pacote Completo modalidade
+  if (modalidade !== "completo" || !nivel) {
     return null;
   }
 
@@ -74,7 +74,7 @@ export default function CustomizacoesSection() {
               Tecnologia Inclusa no seu Pacote
             </h3>
             <p className="font-kanit text-xs text-blenduca-cinza-medio">
-              Tudo isso ja esta incluso no EXPERT {nivelInfo.nome}
+              Tudo isso ja esta incluso no Pacote Completo {nivelInfo.nome}
             </p>
           </div>
         </div>

@@ -28,7 +28,7 @@ export async function generateProposalPDF(proposta: Proposta) {
 
   const modalidadeData = modalidade ? modalidades[modalidade] : null;
   const nivelData = nivel ? niveisMap[nivel] : null;
-  const techData = nivel && modalidade === "expert" ? tecnologiaInclusa[nivel as NivelId] : null;
+  const techData = nivel && modalidade === "completo" ? tecnologiaInclusa[nivel as NivelId] : null;
   const upgradeFlixInfo = upgradeExperienceFlix && nivel
     ? upgradeExperienceFlixOpcoes.find((u) => u.de === nivel && u.para === upgradeExperienceFlix)
     : null;
@@ -221,17 +221,17 @@ export async function generateProposalPDF(proposta: Proposta) {
 
     // Features
     const features = [];
-    if (modalidadeData.incluiConsultoria) features.push("Consultoria Individual");
-    if (modalidadeData.incluiComunidade) features.push("Comunidade Expert Hub");
-    if (modalidadeData.incluiTecnologia) features.push("Tecnologia Inclusa");
+    if (modalidadeData.inclui.consultoriaIndividual) features.push("Consultoria Individual");
+    if (modalidadeData.inclui.comunidadeEventos) features.push("Comunidade Expert Hub");
+    if (modalidadeData.inclui.tecnologiaCompleta) features.push("Tecnologia Inclusa");
     features.forEach((feat) => {
       bulletPoint(feat, 6, COLORS.verde);
     });
     y += 4;
   }
 
-  // Technology included (EXPERT only)
-  if (modalidade === "expert" && techData) {
+  // Technology included (Pacote Completo only)
+  if (modalidade === "completo" && techData) {
     checkPageBreak(40);
     doc.setFillColor(...COLORS.bgLight);
     doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");

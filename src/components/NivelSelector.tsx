@@ -20,11 +20,12 @@ export default function NivelSelector() {
 
   const handleSelect = (nivelId: NivelId) => {
     setNivel(nivelId);
-    // If EXPERT, go to customizations; otherwise go to agentes
-    if (modalidade === "expert") {
+    // If Pacote Completo, go to customizations; otherwise offer to add tech
+    if (modalidade === "completo") {
       setStep("customizacoes");
     } else {
-      setStep("agentes");
+      // For Consultoria/Comunidade, offer to add technology
+      setStep("adicionar_tech");
     }
   };
 
@@ -125,7 +126,7 @@ export default function NivelSelector() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {niveis.map((nivel) => {
           const preco = precosMatriz[nivel.id][modalidade];
-          const tech = modalidade === "expert" ? tecnologiaInclusa[nivel.id] : null;
+          const tech = modalidade === "completo" ? tecnologiaInclusa[nivel.id] : null;
 
           return (
             <div
@@ -172,7 +173,7 @@ export default function NivelSelector() {
                   </p>
                 </div>
 
-                {/* Technology included (EXPERT only) */}
+                {/* Technology included (Pacote Completo only) */}
                 {tech && (
                   <div className="bg-green-50/50 rounded-lg p-3 mb-4">
                     <p className="font-kanit text-[10px] font-bold text-green-700 uppercase tracking-wider mb-1.5">

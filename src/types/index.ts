@@ -1,19 +1,28 @@
 // ============================================
-// MODALIDADES
+// MODALIDADES V5.0
 // ============================================
 
-export type ModalidadeId = "expert" | "exper" | "xper";
+export type ModalidadeId = "completo" | "consultoria" | "comunidade";
 
 export interface Modalidade {
   id: ModalidadeId;
   nome: string;
+  nomeMarketing: string;
+  tagline: string;
   descricao: string;
+  paraQuem: string;
   icone: string;
-  incluiConsultoria: boolean;
-  incluiComunidade: boolean;
-  incluiTecnologia: boolean;
   cor: string;
-  observacao?: string;
+  inclui: {
+    consultoriaIndividual: boolean;
+    comunidadeEventos: boolean;
+    tecnologiaCompleta: boolean;
+  };
+  destaque?: boolean;
+  podeFazerUpgrade?: {
+    para: ModalidadeId;
+    mensagem: string;
+  };
 }
 
 // ============================================
@@ -40,35 +49,47 @@ export interface PrecoNivel {
 }
 
 export interface PrecosModalidade {
-  expert: PrecoNivel;
-  exper: PrecoNivel;
-  xper: PrecoNivel;
+  completo: PrecoNivel;
+  consultoria: PrecoNivel;
+  comunidade: PrecoNivel;
 }
 
 export type PrecosMatriz = Record<NivelId, PrecosModalidade>;
 
 // ============================================
-// TECNOLOGIA INCLUSA (EXPERT)
+// TECNOLOGIA (AVULSA OU INCLUSA)
 // ============================================
 
 export interface LimitesPlataforma {
   areas: number | "Ilimitado";
   usuariosAtivos: number | "Ilimitado";
   custoExcedente: number;
+  textoExcedente?: string;
 }
 
 export interface ValorAvulso {
   entrada?: number;
   mensal: number;
-  anuidade: number;
+  anuidade?: number;
+  condicoes?: string;
+}
+
+export interface BeneficioRecurso {
+  titulo: string;
+  significado: string;
 }
 
 export interface ExperienceFlixConfig {
+  id: string;
   plano: string;
+  nome: string;
   descricao: string;
   recursos: string[];
+  beneficios?: Record<string, BeneficioRecurso>;
   limites: LimitesPlataforma;
   valorAvulso: ValorAvulso;
+  descontoNoPacoteCompleto?: number;
+  podeAdicionarAoPacote?: boolean;
 }
 
 export interface FunnelPagesConfig {
@@ -104,6 +125,64 @@ export interface TecnologiaNivel {
 }
 
 export type TecnologiaInclusa = Record<NivelId, TecnologiaNivel>;
+
+// ============================================
+// EXPERIENCE FLIX AVULSO
+// ============================================
+
+export interface ExperienceFlixAvulso {
+  id: string;
+  plano: NivelId;
+  nome: string;
+  descricao: string;
+  recursos: string[];
+  beneficios?: Record<string, BeneficioRecurso>;
+  limites: LimitesPlataforma;
+  investimento: ValorAvulso;
+  descontoNoPacoteCompleto: number;
+}
+
+// ============================================
+// FUNNEL PAGES AVULSO (À LA CARTE)
+// ============================================
+
+export interface TipoFunil {
+  tipo: string;
+  descricao: string;
+  conversaoMedia: string;
+  melhorPara: string;
+}
+
+export interface ItemFunilInclui {
+  item: string;
+  significado: string;
+}
+
+export interface PacoteFunnelSugerido {
+  id: string;
+  nome: string;
+  funis: number;
+  preco: number;
+  economia?: number;
+  descricao: string;
+  tipos?: string[];
+}
+
+export interface FunnelPagesAvulsoConfig {
+  id: string;
+  nome: string;
+  descricao: string;
+  modelo: "ala_carte";
+  precoBase: {
+    paginaLinks: number;
+    precoPorFunil: number;
+    minimo: number;
+    maximo: number;
+  };
+  pacotesSugeridos: PacoteFunnelSugerido[];
+  oqueCadaFunilInclui: ItemFunilInclui[];
+  tiposDeFunis: TipoFunil[];
+}
 
 // ============================================
 // UPGRADES DE TECNOLOGIA
@@ -158,26 +237,36 @@ export interface AgenteAI {
 }
 
 // ============================================
-// ENTREGAVEIS DO PACOTE BASE
+// ENTREGAVEIS V5.0 (3 CAMADAS)
 // ============================================
 
-export interface Entregavel {
+export interface EntregavelCompleto {
+  id: string;
   categoria: string;
-  descricao: string;
-  detalhes?: string;
+  nome: string;
+
+  // Descrição técnica (o que é)
+  descricaoTecnica: string;
+
+  // O que isso significa para o cliente (benefício real)
+  oQueIstoSignifica: string;
+
+  // Resultado esperado
+  resultadoEsperado: string;
+
   frequencia?: string;
-  tipo?: string;
-  nivel?: string;
-  canal?: string;
-  quantidade?: string;
-  acesso?: boolean;
-  icone?: string;
+  formato?: string;
+  icone: string;
+
+  destaque?: boolean;
+  valorEstimadoAvulso?: number;
+  diferencialPlano?: string;
 }
 
-export interface Pilar {
+export interface PilarEntregaveis {
   pilar: string;
-  icone?: string;
-  items: Entregavel[];
+  icone: string;
+  items: EntregavelCompleto[];
 }
 
 // ============================================
@@ -196,7 +285,7 @@ export interface CondicoesComerciais {
 }
 
 // ============================================
-// CARRINHO E PROPOSTA
+// CARRINHO V5.0
 // ============================================
 
 export interface AgenteNoCarrinho {
@@ -209,12 +298,41 @@ export interface AgenteNoCarrinho {
   mensalTotal: number;
 }
 
+// Tecnologia avulsa no carrinho
+export interface TecnologiaNoCarrinho {
+  experienceFlix?: {
+    plano: NivelId;
+    mensal: number;
+    entrada: number;
+  };
+  funnelPages?: {
+    modo: "pacote" | "custom";
+    pacoteId?: string;
+    quantidade: number;
+    tipos?: string[];
+    mensal: number;
+  };
+}
+
 export interface CarrinhoState {
+  // Tipo de proposta
+  tipoProposta: "programa" | "tecnologia" | "agentes" | "combinado" | null;
+
+  // Programa (se aplicável)
   modalidade: ModalidadeId | null;
   nivel: NivelId | null;
+
+  // Tecnologia avulsa (se não usar Pacote Completo ou se comprar separado)
+  tecnologiaAvulsa: TecnologiaNoCarrinho | null;
+
+  // Upgrades (para Pacote Completo)
   upgradeExperienceFlix: NivelId | null;
   funisExtras: number;
+
+  // Agentes AI
   agentes: AgenteNoCarrinho[];
+
+  // Condições
   condicaoPagamento: CondicaoPagamento;
   revenueShareObservacoes: string;
 }
@@ -224,9 +342,13 @@ export interface ResumoCarrinho {
   pacoteEntrada: number;
   pacoteMensal: number;
 
-  // Tecnologia inclusa (EXPERT)
+  // Tecnologia inclusa (Pacote Completo)
   tecnologiaInclusa: number;
   tecnologiaAvulsoEquivalente: number;
+
+  // Tecnologia avulsa
+  techAvulsaEntrada: number;
+  techAvulsaMensal: number;
 
   // Upgrades
   upgradeFlixMensal: number;
@@ -246,6 +368,13 @@ export interface ResumoCarrinho {
 
   // Economia
   economia: number;
+
+  // Sugestão de upgrade
+  sugestaoUpgrade?: {
+    mostrar: boolean;
+    mensagem: string;
+    economia: number;
+  };
 }
 
 // ============================================
@@ -279,6 +408,7 @@ export interface Proposta {
   carrinho: CarrinhoState;
   resumo: ResumoCarrinho;
   consultor: string;
+  entregaveis?: PilarEntregaveis[];
 }
 
 // ============================================
@@ -288,5 +418,5 @@ export interface Proposta {
 export interface EntregaveisConfig {
   modalidade: ModalidadeId;
   nivel: NivelId;
-  pilares: Pilar[];
+  pilares: PilarEntregaveis[];
 }

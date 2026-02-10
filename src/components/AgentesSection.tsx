@@ -13,14 +13,21 @@ export default function AgentesSection() {
   const atualizarAgente = useCartStore((s) => s.atualizarAgente);
   const setStep = useCartStore((s) => s.setStep);
 
-  const { modalidade, nivel, agentes } = carrinho;
+  const { modalidade, nivel, agentes, tipoProposta, tecnologiaAvulsa } = carrinho;
 
   // Local state for extras configuration before adding
   const [extrasConfig, setExtrasConfig] = useState<Record<string, Partial<AgenteNoCarrinho>>>({});
 
   const handleBack = () => {
-    if (modalidade === "expert") {
+    // Navigate based on flow type
+    if (tipoProposta === "agentes") {
+      setStep("home");
+    } else if (tipoProposta === "tecnologia") {
+      setStep("tecnologia");
+    } else if (modalidade === "completo") {
       setStep("customizacoes");
+    } else if (modalidade === "consultoria" || modalidade === "comunidade") {
+      setStep("adicionar_tech");
     } else {
       setStep("nivel");
     }

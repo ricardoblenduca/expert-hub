@@ -2,13 +2,29 @@
 
 import { useCartStore, Step } from "@/store/useCartStore";
 
+// V5.0: New step flow with entry points
 const STEPS: { id: Step; label: string; num: number }[] = [
-  { id: "modalidade", label: "Modalidade", num: 1 },
+  { id: "modalidade", label: "Programa", num: 1 },
   { id: "nivel", label: "Nivel", num: 2 },
   { id: "customizacoes", label: "Upgrades", num: 3 },
   { id: "agentes", label: "Agentes", num: 4 },
   { id: "cliente", label: "Cliente", num: 5 },
   { id: "preview", label: "Proposta", num: 6 },
+];
+
+// Steps for technology-only flow
+const TECH_STEPS: { id: Step; label: string; num: number }[] = [
+  { id: "tecnologia", label: "Tecnologia", num: 1 },
+  { id: "agentes", label: "Agentes", num: 2 },
+  { id: "cliente", label: "Cliente", num: 3 },
+  { id: "preview", label: "Proposta", num: 4 },
+];
+
+// Steps for agents-only flow
+const AGENT_STEPS: { id: Step; label: string; num: number }[] = [
+  { id: "agentes", label: "Agentes", num: 1 },
+  { id: "cliente", label: "Cliente", num: 2 },
+  { id: "preview", label: "Proposta", num: 3 },
 ];
 
 export default function Header() {
@@ -17,10 +33,22 @@ export default function Header() {
   const setStep = useCartStore((s) => s.setStep);
   const setMobileCartOpen = useCartStore((s) => s.setMobileCartOpen);
   const mobileCartOpen = useCartStore((s) => s.mobileCartOpen);
+  const resetCarrinho = useCartStore((s) => s.resetCarrinho);
 
-  const currentStepIndex = STEPS.findIndex((s) => s.id === step);
+  // Determine which step flow to use based on tipoProposta
+  const getActiveSteps = () => {
+    if (carrinho.tipoProposta === "tecnologia") return TECH_STEPS;
+    if (carrinho.tipoProposta === "agentes") return AGENT_STEPS;
+    return STEPS;
+  };
+
+  const activeSteps = getActiveSteps();
+  const currentStepIndex = activeSteps.findIndex((s) => s.id === step);
 
   const hasSelection = carrinho.modalidade && carrinho.nivel;
+  const hasTech = carrinho.tecnologiaAvulsa !== null;
+  const hasAgents = carrinho.agentes.length > 0;
+  const hasAnything = hasSelection || hasTech || hasAgents;
 
   return (
     <header className="sticky top-0 z-50 bg-blenduca-grafite text-white shadow-lg">
@@ -29,7 +57,7 @@ export default function Header() {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setStep("modalidade")}
+              onClick={() => resetCarrinho()}
               className="flex items-center gap-3 hover:opacity-80 transition-opacity"
             >
               <div className="w-9 h-9 bg-blenduca-vermelho rounded-lg flex items-center justify-center font-kanit font-bold text-lg">
@@ -40,104 +68,76 @@ export default function Header() {
                   EXPERT HUB
                 </h1>
                 <p className="font-play text-[10px] tracking-widest text-gray-400 uppercase">
-                  Calculator v4.0
+                  Calculator v5.0
                 </p>
               </div>
             </button>
           </div>
 
-          {/* Steps indicator (simplified) */}
-          <div className="hidden md:flex items-center gap-1">
-            {STEPS.slice(0, 4).map((s, i) => {
-              const isActive = step === s.id;
-              const isPast = currentStepIndex > i;
-              const canClick = i === 0 || (i === 1 && carrinho.modalidade) || (i > 1 && hasSelection);
+          {/* Steps indicator - dynamic based on flow */}
+          {step !== "home" && (
+            <div className="hidden md:flex items-center gap-1">
+              {activeSteps.map((s, i) => {
+                const isActive = step === s.id ||
+                  (s.id === "customizacoes" && step === "adicionar_tech");
+                const isPast = currentStepIndex > i;
 
-              return (
-                <div key={s.id} className="flex items-center">
-                  {i > 0 && <div className="w-4 h-px bg-gray-600 mx-1" />}
-                  <button
-                    onClick={() => canClick && setStep(s.id)}
-                    disabled={!canClick}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-kanit font-medium transition-all ${
-                      isActive
-                        ? "bg-blenduca-vermelho text-white"
-                        : isPast
-                          ? "text-green-400 hover:text-white hover:bg-white/10 cursor-pointer"
-                          : canClick
-                            ? "text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
-                            : "text-gray-500 cursor-not-allowed"
-                    }`}
-                  >
-                    <span
-                      className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                // Determine if step is clickable
+                const canClick = (() => {
+                  if (i === 0) return true;
+                  if (carrinho.tipoProposta === "programa") {
+                    if (s.id === "nivel") return !!carrinho.modalidade;
+                    if (s.id === "customizacoes" || s.id === "adicionar_tech") return hasSelection;
+                    if (s.id === "agentes") return hasSelection;
+                    if (s.id === "cliente") return hasAnything;
+                    if (s.id === "preview") return false;
+                  }
+                  if (carrinho.tipoProposta === "tecnologia") {
+                    if (s.id === "agentes") return hasTech;
+                    if (s.id === "cliente") return hasTech || hasAgents;
+                    if (s.id === "preview") return false;
+                  }
+                  if (carrinho.tipoProposta === "agentes") {
+                    if (s.id === "cliente") return hasAgents;
+                    if (s.id === "preview") return false;
+                  }
+                  return isPast;
+                })();
+
+                return (
+                  <div key={s.id} className="flex items-center">
+                    {i > 0 && <div className="w-4 h-px bg-gray-600 mx-1" />}
+                    <button
+                      onClick={() => canClick && setStep(s.id)}
+                      disabled={!canClick}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-kanit font-medium transition-all ${
                         isActive
-                          ? "bg-white text-blenduca-vermelho"
+                          ? "bg-blenduca-vermelho text-white"
                           : isPast
-                            ? "bg-green-500 text-white"
-                            : "bg-gray-600 text-gray-300"
+                            ? "text-green-400 hover:text-white hover:bg-white/10 cursor-pointer"
+                            : canClick
+                              ? "text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
+                              : "text-gray-500 cursor-not-allowed"
                       }`}
                     >
-                      {isPast ? "✓" : s.num}
-                    </span>
-                    <span className="hidden lg:inline">{s.label}</span>
-                  </button>
-                </div>
-              );
-            })}
-
-            {/* Separator before cliente/preview */}
-            <div className="w-4 h-px bg-gray-600 mx-1" />
-
-            {/* Cliente step */}
-            <button
-              onClick={() => hasSelection && setStep("cliente")}
-              disabled={!hasSelection}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-kanit font-medium transition-all ${
-                step === "cliente"
-                  ? "bg-blenduca-vermelho text-white"
-                  : step === "preview"
-                    ? "text-green-400 cursor-pointer"
-                    : hasSelection
-                      ? "text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
-                      : "text-gray-500 cursor-not-allowed"
-              }`}
-            >
-              <span
-                className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
-                  step === "cliente"
-                    ? "bg-white text-blenduca-vermelho"
-                    : step === "preview"
-                      ? "bg-green-500 text-white"
-                      : "bg-gray-600 text-gray-300"
-                }`}
-              >
-                {step === "preview" ? "✓" : "5"}
-              </span>
-              <span className="hidden lg:inline">Cliente</span>
-            </button>
-
-            <div className="w-4 h-px bg-gray-600 mx-1" />
-
-            {/* Preview step */}
-            <button
-              disabled
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-kanit font-medium ${
-                step === "preview"
-                  ? "bg-blenduca-vermelho text-white"
-                  : "text-gray-500 cursor-not-allowed"
-              }`}
-            >
-              <span
-                className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
-                  step === "preview" ? "bg-white text-blenduca-vermelho" : "bg-gray-600 text-gray-300"
-                }`}
-              >
-                6
-              </span>
-              <span className="hidden lg:inline">Proposta</span>
-            </button>
-          </div>
+                      <span
+                        className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${
+                          isActive
+                            ? "bg-white text-blenduca-vermelho"
+                            : isPast
+                              ? "bg-green-500 text-white"
+                              : "bg-gray-600 text-gray-300"
+                        }`}
+                      >
+                        {isPast ? "✓" : s.num}
+                      </span>
+                      <span className="hidden lg:inline">{s.label}</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Mobile cart toggle */}
           <button
@@ -158,7 +158,7 @@ export default function Header() {
                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
               />
             </svg>
-            {hasSelection && (
+            {hasAnything && (
               <span className="absolute -top-1 -right-1 bg-blenduca-vermelho text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                 ✓
               </span>

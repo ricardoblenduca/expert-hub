@@ -13,16 +13,22 @@ export default function CartSidebar() {
   const setMobileCartOpen = useCartStore((s) => s.setMobileCartOpen);
   const addToast = useCartStore((s) => s.addToast);
 
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes, tecnologiaAvulsa, tipoProposta } = carrinho;
   const resumo = calcularResumo();
 
   const modalidadeInfo = modalidade ? modalidades[modalidade] : null;
   const nivelInfo = nivel ? niveisMap[nivel] : null;
-  const tech = modalidade === "expert" && nivel ? tecnologiaInclusa[nivel] : null;
+  const tech = modalidade === "completo" && nivel ? tecnologiaInclusa[nivel] : null;
+
+  // Determine if we have anything to show
+  const hasPrograma = modalidade && nivel;
+  const hasTech = tecnologiaAvulsa !== null;
+  const hasAgents = agentes.length > 0;
+  const hasAnything = hasPrograma || hasTech || hasAgents;
 
   const handleFinalize = () => {
-    if (!modalidade || !nivel) {
-      addToast("Selecione uma modalidade e nivel", "warning");
+    if (!hasAnything) {
+      addToast("Adicione pelo menos um item ao carrinho", "warning");
       return;
     }
     setStep("cliente");
@@ -51,7 +57,7 @@ export default function CartSidebar() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {!modalidade || !nivel ? (
+        {!hasAnything ? (
           <div className="text-center py-12">
             <svg
               className="w-12 h-12 mx-auto text-gray-300 mb-3"
@@ -67,10 +73,10 @@ export default function CartSidebar() {
               />
             </svg>
             <p className="font-kanit text-sm text-blenduca-cinza-medio">
-              Selecione uma modalidade
+              Carrinho vazio
             </p>
             <p className="font-kanit text-xs text-gray-400 mt-1">
-              para visualizar o resumo
+              Adicione itens para visualizar o resumo
             </p>
           </div>
         ) : (
@@ -114,7 +120,7 @@ export default function CartSidebar() {
               </div>
             </div>
 
-            {/* Tecnologia Inclusa (EXPERT only) */}
+            {/* Tecnologia Inclusa (Pacote Completo only) */}
             {tech && (
               <div className="bg-green-50/50 border border-green-100 rounded-lg p-4">
                 <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-green-700 mb-3">
@@ -140,6 +146,38 @@ export default function CartSidebar() {
                   <p className="font-kanit text-[10px] text-green-600">
                     Valor avulso: {formatCurrency(tech.totalTecnologia.mensal)}/mes
                   </p>
+                </div>
+              </div>
+            )}
+
+            {/* Tecnologia Avulsa */}
+            {tecnologiaAvulsa && (
+              <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4">
+                <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-blue-700 mb-3">
+                  💻 TECNOLOGIA
+                </h3>
+
+                <div className="space-y-2">
+                  {tecnologiaAvulsa.experienceFlix && (
+                    <div className="flex items-center justify-between text-xs font-kanit">
+                      <span className="text-blenduca-grafite">
+                        📺 Experience Flix {tecnologiaAvulsa.experienceFlix.plano.toUpperCase()}
+                      </span>
+                      <span className="font-medium text-blenduca-grafite">
+                        {formatCurrency(tecnologiaAvulsa.experienceFlix.mensal)}/mes
+                      </span>
+                    </div>
+                  )}
+                  {tecnologiaAvulsa.funnelPages && (
+                    <div className="flex items-center justify-between text-xs font-kanit">
+                      <span className="text-blenduca-grafite">
+                        🚀 Funnel Pages ({tecnologiaAvulsa.funnelPages.quantidade} funis)
+                      </span>
+                      <span className="font-medium text-blenduca-grafite">
+                        {formatCurrency(tecnologiaAvulsa.funnelPages.mensal)}/mes
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -207,7 +245,7 @@ export default function CartSidebar() {
       </div>
 
       {/* Summary Footer */}
-      {modalidade && nivel && (
+      {hasAnything && (
         <div className="border-t border-gray-100 p-4 space-y-3 bg-gray-50/50">
           {/* Breakdown */}
           <div className="space-y-1.5">
@@ -257,10 +295,19 @@ export default function CartSidebar() {
             </div>
           )}
 
+          {/* Smart Upgrade Suggestion */}
+          {resumo.sugestaoUpgrade?.mostrar && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="font-kanit text-xs text-amber-700 whitespace-pre-line">
+                {resumo.sugestaoUpgrade.mensagem}
+              </p>
+            </div>
+          )}
+
           {/* CTA */}
           <button
             onClick={handleFinalize}
-            disabled={!modalidade || !nivel}
+            disabled={!hasAnything}
             className="w-full py-3 bg-blenduca-vermelho text-white rounded-lg font-kanit font-semibold text-sm transition-all duration-300 hover:bg-blenduca-vermelho-dark shadow-lg shadow-blenduca-vermelho/20 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             Finalizar Proposta

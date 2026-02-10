@@ -3,36 +3,44 @@ import type { TecnologiaInclusa, FunisAdicionaisConfig } from "@/types";
 export const tecnologiaInclusa: TecnologiaInclusa = {
   starter: {
     experienceFlix: {
+      id: "flix_starter",
       plano: "STARTER",
-      descricao: "1 Area de Membros. Ate 100 usuarios ativos/mes",
+      nome: "Experience Flix Starter",
+      descricao: "1 Área de Membros. Até 100 usuários ativos/mês",
       recursos: [
+        "1 Área de Membros pré-configurada",
+        "Aulas e Conteúdos ilimitados",
         "Vitrine Personalizada estilo Netflix",
         "Trilhas de aprendizado",
-        "Plataforma 100% Whitelabel com Dominio Proprio",
-        "Integracao com Gateway de Pagamento Externo",
-        "Integracao com Vimeo e YouTube",
-        "Atendimento via Whatsapp e Suporte Tecnico",
+        "Plataforma 100% Whitelabel com Domínio Próprio",
+        "Integração com Gateway de Pagamento Externo",
+        "Integração com Vimeo e YouTube",
+        "Atendimento via WhatsApp e Suporte Técnico",
       ],
       limites: {
         areas: 1,
         usuariosAtivos: 100,
         custoExcedente: 3.0,
+        textoExcedente: "Cada usuário ativo além de 100: R$ 3,00/mês",
       },
       valorAvulso: {
         entrada: 497,
         mensal: 497,
         anuidade: 5964,
+        condicoes: "12 meses (R$ 5.964 à vista com desconto)",
       },
+      descontoNoPacoteCompleto: 197,
+      podeAdicionarAoPacote: true,
     },
 
     funnelPages: {
       plano: "STARTER",
-      descricao: "Pagina de Links + 1 Funil",
-      funis: ["1x Funil de Sessao Estrategica / Aplicacao de Produto"],
+      descricao: "Página de Links + 1 Funil",
+      funis: ["1x Funil de Sessão Estratégica / Aplicação de Produto"],
       automacao: [
         "Squad de desenvolvimento (copy/design/dev)",
-        "Pagina de obrigado integrada ao WhatsApp",
-        "Atendimento via WhatsApp e Suporte Tecnico",
+        "Página de obrigado integrada ao WhatsApp",
+        "Atendimento via WhatsApp e Suporte Técnico",
       ],
       quantidade: {
         paginaLinks: 1,
@@ -52,37 +60,44 @@ export const tecnologiaInclusa: TecnologiaInclusa = {
 
   professional: {
     experienceFlix: {
+      id: "flix_professional",
       plano: "PROFESSIONAL",
-      descricao: "3 Areas de Membros. Ate 150 usuarios ativos/mes",
+      nome: "Experience Flix Professional",
+      descricao: "3 Áreas de Membros. Até 150 usuários ativos/mês",
       recursos: [
         "TUDO DO STARTER",
-        "Producao de banners e capas para toda plataforma",
-        "Atendimento dedicado para postagem de conteudos",
+        "3 Áreas de Membros completas",
+        "Produção de banners e capas para toda plataforma",
+        "Atendimento dedicado para postagem de conteúdos",
       ],
       limites: {
         areas: 3,
         usuariosAtivos: 150,
         custoExcedente: 2.5,
+        textoExcedente: "Cada usuário ativo além de 150: R$ 2,50/mês",
       },
       valorAvulso: {
         entrada: 997,
         mensal: 997,
         anuidade: 11964,
+        condicoes: "12 meses (R$ 11.964 à vista)",
       },
+      descontoNoPacoteCompleto: 397,
+      podeAdicionarAoPacote: true,
     },
 
     funnelPages: {
       plano: "PROFESSIONAL",
-      descricao: "Pagina de Links + 3 Funis",
+      descricao: "Página de Links + 3 Funis",
       funis: [
-        "1x Funil de Sessao Estrategica / Aplicacao de Produto",
-        "1x Funil de Evento de Lancamento (Gratuito / Pago)",
-        "1x Funil de Isca Digital Perpetuo (Gratuito / Pago)",
+        "1x Funil de Sessão Estratégica / Aplicação de Produto",
+        "1x Funil de Evento de Lançamento (Gratuito / Pago)",
+        "1x Funil de Isca Digital Perpétuo (Gratuito / Pago)",
       ],
       automacao: [
         "TUDO DO STARTER",
-        "Automacao para envio de e-mails de confirmacao",
-        "Integracao dos inscritos no CRM/Planilha de inscritos",
+        "Automação para envio de e-mails de confirmação",
+        "Integração dos inscritos no CRM/Planilha de inscritos",
       ],
       quantidade: {
         paginaLinks: 1,
@@ -102,14 +117,16 @@ export const tecnologiaInclusa: TecnologiaInclusa = {
 
   business: {
     experienceFlix: {
+      id: "flix_business",
       plano: "BUSINESS",
-      descricao: "3 Areas de Membros. Membros ilimitados",
+      nome: "Experience Flix Business",
+      descricao: "3 Áreas de Membros. Membros ilimitados",
       recursos: [
         "TUDO DO PROFESSIONAL",
-        "Comunidade integrada com multiplos canais",
-        "Sessao de onboarding coletivo",
+        "Comunidade integrada com múltiplos canais",
+        "Sessão de onboarding coletivo",
         "Campanha 20mil disparos",
-        "Bonus: 200GB armazenamento + 300GB banda",
+        "Bônus: 200GB armazenamento + 300GB banda",
       ],
       limites: {
         areas: 3,
@@ -120,21 +137,24 @@ export const tecnologiaInclusa: TecnologiaInclusa = {
         entrada: 1497,
         mensal: 1497,
         anuidade: 17964,
+        condicoes: "12 meses (R$ 17.964 à vista)",
       },
+      descontoNoPacoteCompleto: 597,
+      podeAdicionarAoPacote: true,
     },
 
     funnelPages: {
       plano: "BUSINESS",
-      descricao: "Pagina de Links + 5 Funis",
+      descricao: "Página de Links + 5 Funis",
       funis: [
-        "1x Funil de Sessao Estrategica",
-        "1x Funil de Isca Digital Perpetuo",
-        "1x Funil de Evento de Lancamento",
-        "2x Funil de Aplicacao de Produto",
+        "1x Funil de Sessão Estratégica",
+        "1x Funil de Isca Digital Perpétuo",
+        "1x Funil de Evento de Lançamento",
+        "2x Funil de Aplicação de Produto",
       ],
       automacao: [
         "TUDO DO PROFESSIONAL",
-        "Automacao / Sequencia de Nutricao via E-mail Marketing",
+        "Automação / Sequência de Nutrição via E-mail Marketing",
       ],
       quantidade: {
         paginaLinks: 1,
@@ -154,15 +174,17 @@ export const tecnologiaInclusa: TecnologiaInclusa = {
 
   scale: {
     experienceFlix: {
+      id: "flix_scale",
       plano: "SCALE",
-      descricao: "Membros e Conteudos ilimitados + App Proprio",
+      nome: "Experience Flix Scale",
+      descricao: "Membros e Conteúdos ilimitados + App Próprio",
       recursos: [
         "TUDO DO BUSINESS",
-        "App proprio",
+        "App próprio",
         "Aulas ao vivo (YouTube, Vimeo, Zoom)",
         "Campanha 50mil disparos",
-        "5 Automacoes + 1 WhatsApp conexao + 1 Chip",
-        "Bonus: 500GB armazenamento + 1TB banda",
+        "5 Automações + 1 WhatsApp conexão + 1 Chip",
+        "Bônus: 500GB armazenamento + 1TB banda",
       ],
       limites: {
         areas: "Ilimitado",
@@ -173,19 +195,22 @@ export const tecnologiaInclusa: TecnologiaInclusa = {
         entrada: 1997,
         mensal: 1997,
         anuidade: 23964,
+        condicoes: "12 meses (R$ 23.964 à vista)",
       },
+      descontoNoPacoteCompleto: 797,
+      podeAdicionarAoPacote: true,
     },
 
     funnelPages: {
       plano: "SCALE",
-      descricao: "Pagina de Links + 7 Funis",
+      descricao: "Página de Links + 7 Funis",
       funis: [
-        "1x Funil de Sessao Estrategica",
-        "2x Funil de Isca Digital Perpetuo",
-        "2x Funil de Evento de Lancamento",
-        "2x Funil de Aplicacao de Produto",
+        "1x Funil de Sessão Estratégica",
+        "2x Funil de Isca Digital Perpétuo",
+        "2x Funil de Evento de Lançamento",
+        "2x Funil de Aplicação de Produto",
       ],
-      automacao: ["TUDO DO BUSINESS", "Automacao Pre-vendas A.I"],
+      automacao: ["TUDO DO BUSINESS", "Automação Pré-vendas A.I"],
       quantidade: {
         paginaLinks: 1,
         funis: 7,
@@ -198,12 +223,12 @@ export const tecnologiaInclusa: TecnologiaInclusa = {
 
     geniusAI: {
       plano: "SCALE EXCLUSIVE",
-      descricao: "Central de Inteligencia integrada na plataforma",
+      descricao: "Central de Inteligência integrada na plataforma",
       recursos: [
         "10 CreatorGPT",
-        "1MM Creditos Agentes A.I",
+        "1MM Créditos Agentes A.I",
         "1 Suporte A.I",
-        "1 Pre-vendas A.I",
+        "1 Pré-vendas A.I",
         "1 Vendas A.I",
       ],
       valorEstimado: {
@@ -227,7 +252,7 @@ export const funisAdicionaisConfig: FunisAdicionaisConfig = {
   minimo: 0,
   maximo: 20,
   observacao:
-    "Cada funil adicional inclui copy, design, desenvolvimento e integracoes completas",
+    "Cada funil adicional inclui copy, design, desenvolvimento e integrações completas",
 };
 
 export const upgradeExperienceFlixOpcoes = [
@@ -235,18 +260,18 @@ export const upgradeExperienceFlixOpcoes = [
     de: "starter" as const,
     para: "professional" as const,
     diferencaMensal: 500,
-    descricao: "De 1 area para 3 areas + Servico completo",
+    descricao: "De 1 área para 3 áreas + Serviço completo",
   },
   {
     de: "professional" as const,
     para: "business" as const,
     diferencaMensal: 500,
-    descricao: "De 150 usuarios para ilimitado + Recursos premium",
+    descricao: "De 150 usuários para ilimitado + Recursos premium",
   },
   {
     de: "business" as const,
     para: "scale" as const,
     diferencaMensal: 500,
-    descricao: "App proprio + Genius AI + Recursos enterprise",
+    descricao: "App próprio + Genius AI + Recursos enterprise",
   },
 ];

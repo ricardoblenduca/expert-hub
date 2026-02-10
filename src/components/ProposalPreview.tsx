@@ -21,7 +21,7 @@ export default function ProposalPreview() {
 
   const modalidadeData = modalidade ? modalidades[modalidade] : null;
   const nivelData = nivel ? niveisMap[nivel] : null;
-  const techData = nivel && modalidade === "expert" ? tecnologiaInclusa[nivel] : null;
+  const techData = nivel && modalidade === "completo" ? tecnologiaInclusa[nivel] : null;
 
   const hoje = new Date();
   const validade = new Date(hoje);
@@ -235,22 +235,22 @@ export default function ProposalPreview() {
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   <FeatureTag
                     label="Consultoria"
-                    included={modalidadeData.incluiConsultoria}
+                    included={modalidadeData.inclui.consultoriaIndividual}
                   />
                   <FeatureTag
                     label="Comunidade"
-                    included={modalidadeData.incluiComunidade}
+                    included={modalidadeData.inclui.comunidadeEventos}
                   />
                   <FeatureTag
                     label="Tecnologia"
-                    included={modalidadeData.incluiTecnologia}
+                    included={modalidadeData.inclui.tecnologiaCompleta}
                   />
                 </div>
               </div>
             )}
 
-            {/* Technology included (EXPERT only) */}
-            {modalidade === "expert" && techData && (
+            {/* Technology included (Pacote Completo only) */}
+            {modalidade === "completo" && techData && (
               <div className="mb-6 border border-gray-100 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blenduca-verde text-white px-2 py-1 rounded">

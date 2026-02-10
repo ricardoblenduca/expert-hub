@@ -370,7 +370,7 @@ export interface DescontoConfig {
 }
 
 // ============================================
-// GENIUS AI ASSISTENTES V0.11
+// GENIUS AI ASSISTENTES V0.11 (DEPRECATED in V0.12)
 // ============================================
 
 export interface GeniusAIAssistentesConfig {
@@ -378,6 +378,26 @@ export interface GeniusAIAssistentesConfig {
   maximo: number; // Máximo de assistentes adicionais
   descricao: string;
   exemplos: string[];
+}
+
+// ============================================
+// CENTRAL DE INTELIGÊNCIA V0.12
+// ============================================
+
+export type CentralInteligenciaPacoteId = "pacote_5" | "pacote_10" | null;
+
+export interface CentralInteligenciaPacote {
+  id: CentralInteligenciaPacoteId;
+  nome: string;
+  assistentes: number;
+  setup: number;
+  descricao: string;
+  recursos: string[];
+}
+
+export interface CentralInteligenciaConfig {
+  pacoteSelecionado: CentralInteligenciaPacoteId;
+  setupTotal: number;
 }
 
 // ============================================
@@ -425,8 +445,8 @@ export interface CarrinhoState {
   upgradeExperienceFlix: NivelId | null;
   funisExtras: number;
 
-  // Genius AI assistentes extras (Business/Scale only) - V0.11
-  assistentesGeniusAI: number;
+  // Central de Inteligência (Business/Scale only) - V0.12
+  centralInteligencia: CentralInteligenciaConfig;
 
   // Agentes AI
   agentes: AgenteNoCarrinho[];
@@ -460,8 +480,9 @@ export interface ResumoCarrinho {
   funisExtrasMensal: number;
   totalUpgradesMensal: number;
 
-  // Genius AI assistentes extras V0.11
-  assistentesGeniusAIMensal: number;
+  // Central de Inteligência (Business/Scale only) - V0.12
+  centralInteligenciaSetup: number;
+  centralInteligenciaPacote: string | null;
 
   // Agentes AI
   agentesSetup: number;
@@ -480,8 +501,8 @@ export interface ResumoCarrinho {
   totalMensal: number;
   totalAnual: number;
 
-  // Co-produtor
-  coprodutorComissao: number;
+  // Co-produtor (apenas dados, sem cálculo de valor) - V0.12
+  coprodutorNome: string;
 
   // Economia
   economia: number;

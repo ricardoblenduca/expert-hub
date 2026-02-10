@@ -4,16 +4,51 @@ import { useState } from "react";
 import { useCartStore } from "@/store/useCartStore";
 import { agentesAI } from "@/data/agentesAI";
 import { formatCurrency } from "@/utils/formatting";
-import type { AgenteAI, AgenteNoCarrinho } from "@/types";
+import type { AgenteAI, AgenteNoCarrinho, CentralInteligenciaPacoteId } from "@/types";
+
+// V0.12: Central de Inteligência packages
+const CENTRAL_INTELIGENCIA_PACOTES = [
+  {
+    id: "pacote_5" as CentralInteligenciaPacoteId,
+    nome: "Pacote 5 Assistentes",
+    assistentes: 5,
+    setup: 2500,
+    descricao: "Ideal para comecar a automatizar processos",
+    recursos: [
+      "5 Assistentes de IA personalizados",
+      "Integracao com Experience Flix",
+      "Treinamento inicial incluido",
+      "Suporte na configuracao",
+    ],
+  },
+  {
+    id: "pacote_10" as CentralInteligenciaPacoteId,
+    nome: "Pacote 10 Assistentes",
+    assistentes: 10,
+    setup: 5000,
+    descricao: "Para escalar operacoes com IA completa",
+    recursos: [
+      "10 Assistentes de IA personalizados",
+      "Integracao com Experience Flix",
+      "Treinamento completo incluido",
+      "Suporte prioritario",
+      "Relatorios de performance",
+    ],
+  },
+];
 
 export default function AgentesSection() {
   const carrinho = useCartStore((s) => s.carrinho);
   const adicionarAgente = useCartStore((s) => s.adicionarAgente);
   const removerAgente = useCartStore((s) => s.removerAgente);
   const atualizarAgente = useCartStore((s) => s.atualizarAgente);
+  const setCentralInteligenciaPacote = useCartStore((s) => s.setCentralInteligenciaPacote);
   const setStep = useCartStore((s) => s.setStep);
 
-  const { modalidade, nivel, agentes, tipoProposta, tecnologiaAvulsa } = carrinho;
+  const { modalidade, nivel, agentes, tipoProposta, tecnologiaAvulsa, centralInteligencia } = carrinho;
+
+  // Central de Inteligência is only available for Business and Scale
+  const centralInteligenciaDisponivel = nivel === "business" || nivel === "scale";
 
   // Local state for extras configuration before adding
   const [extrasConfig, setExtrasConfig] = useState<Record<string, Partial<AgenteNoCarrinho>>>({});
@@ -34,12 +69,8 @@ export default function AgentesSection() {
   };
 
   const handleContinue = () => {
-    // For business/scale show conditions, otherwise go to cliente
-    if (nivel === "business" || nivel === "scale") {
-      setStep("cliente"); // We could add condicoes step here
-    } else {
-      setStep("cliente");
-    }
+    // V0.12: Always go to negociacao step after agentes
+    setStep("negociacao");
   };
 
   const isAgenteAdicionado = (agenteId: string) => {
@@ -56,6 +87,15 @@ export default function AgentesSection() {
     } else {
       const config = extrasConfig[agente.id] || {};
       adicionarAgente(agente, config);
+    }
+  };
+
+  const handleSelectCentralInteligencia = (pacoteId: CentralInteligenciaPacoteId) => {
+    if (centralInteligencia.pacoteSelecionado === pacoteId) {
+      // Deselect if already selected
+      setCentralInteligenciaPacote(null);
+    } else {
+      setCentralInteligenciaPacote(pacoteId);
     }
   };
 
@@ -115,10 +155,127 @@ export default function AgentesSection() {
 
       <div className="text-center mb-8">
         <h2 className="font-kanit font-bold text-2xl md:text-3xl text-blenduca-grafite mb-2">
-          Adicione Agentes de Inteligencia Artificial
+          Agentes de Inteligencia Artificial
         </h2>
         <p className="font-kanit text-sm text-blenduca-cinza-medio">
-          Produtos avulsos que podem ser contratados independente do pacote
+          Adicione inteligencia artificial ao seu negocio
+        </p>
+      </div>
+
+      {/* CENTRAL DE INTELIGÊNCIA SECTION V0.12 (Business/Scale only) */}
+      {centralInteligenciaDisponivel && (
+        <div className="mb-10 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 border-2 border-blue-200 rounded-xl p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">🧠</span>
+            <h3 className="font-kanit font-bold text-xl text-blenduca-grafite">
+              Central de Inteligencia
+            </h3>
+          </div>
+          <p className="font-kanit text-sm text-blenduca-cinza-medio mb-6">
+            Assistentes de IA personalizados para o seu negocio
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {CENTRAL_INTELIGENCIA_PACOTES.map((pacote) => {
+              const isSelected = centralInteligencia.pacoteSelecionado === pacote.id;
+
+              return (
+                <label
+                  key={pacote.id}
+                  className={`bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-lg ${
+                    isSelected
+                      ? "border-blue-500 shadow-lg"
+                      : "border-gray-100 hover:border-blue-300"
+                  }`}
+                >
+                  <div className="h-1.5 rounded-t-xl bg-blue-500" />
+                  <div className="p-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-play text-[10px] font-bold tracking-wider px-2 py-1 rounded bg-blue-500 text-white">
+                        {pacote.assistentes} ASSISTENTES
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleSelectCentralInteligencia(pacote.id)}
+                        className="w-5 h-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </div>
+
+                    <h4 className="font-kanit font-bold text-lg text-blenduca-grafite mb-1">
+                      {pacote.nome}
+                    </h4>
+                    <p className="font-kanit text-xs text-blenduca-cinza-medio mb-4">
+                      {pacote.descricao}
+                    </p>
+
+                    {/* Recursos */}
+                    <div className="space-y-1 mb-4">
+                      {pacote.recursos.map((recurso, i) => (
+                        <p key={i} className="font-kanit text-xs text-blenduca-grafite flex items-start gap-1.5">
+                          <span className="text-blue-500 shrink-0">✓</span>
+                          <span>{recurso}</span>
+                        </p>
+                      ))}
+                    </div>
+
+                    {/* Investimento */}
+                    <div className="border-t border-gray-100 pt-4">
+                      <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                        Investimento unico (setup):
+                      </p>
+                      <p className="font-kanit font-bold text-xl text-blenduca-grafite">
+                        {formatCurrency(pacote.setup)}
+                      </p>
+                    </div>
+
+                    <div
+                      className={`w-full mt-4 py-2.5 rounded-lg font-kanit font-semibold text-sm text-center transition-all ${
+                        isSelected
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 text-blenduca-grafite"
+                      }`}
+                    >
+                      {isSelected ? "Selecionado ✓" : "Selecionar"}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          {/* Resumo se selecionado */}
+          {centralInteligencia.pacoteSelecionado && (
+            <div className="mt-4 bg-white rounded-lg p-4 border-2 border-blue-200 animate-fade-in-up">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span>📊</span>
+                  <span className="font-kanit font-semibold text-sm text-blue-600">
+                    {centralInteligencia.pacoteSelecionado === "pacote_5"
+                      ? "5 Assistentes"
+                      : "10 Assistentes"}{" "}
+                    selecionados
+                  </span>
+                </div>
+                <span className="font-kanit font-bold text-lg text-blenduca-grafite">
+                  Setup: {formatCurrency(centralInteligencia.setupTotal)}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* AGENTES AI SECTION */}
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-xl">🤖</span>
+          <h3 className="font-kanit font-bold text-lg text-blenduca-grafite">
+            Agentes A.I (Produtos Avulsos)
+          </h3>
+        </div>
+        <p className="font-kanit text-sm text-blenduca-cinza-medio mb-6">
+          Produtos que podem ser contratados independente do pacote
         </p>
       </div>
 
@@ -353,7 +510,7 @@ export default function AgentesSection() {
           onClick={handleContinue}
           className="flex-1 py-3 rounded-lg bg-blenduca-vermelho text-white font-kanit font-semibold text-sm hover:bg-blenduca-vermelho-dark shadow-lg shadow-blenduca-vermelho/20 transition-all"
         >
-          {agentes.length === 0 ? "Pular e Continuar" : "Continuar"}
+          Continuar para Negociacao →
         </button>
       </div>
     </div>

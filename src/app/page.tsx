@@ -8,6 +8,7 @@ import NivelSelector from "@/components/NivelSelector";
 import CustomizacoesSection from "@/components/CustomizacoesSection";
 import TecnologiaAvulsa from "@/components/TecnologiaAvulsa";
 import AgentesSection from "@/components/AgentesSection";
+import NegociacaoSection from "@/components/NegociacaoSection";
 import CartSidebar from "@/components/CartSidebar";
 import ClientForm from "@/components/ClientForm";
 import ProposalPreview from "@/components/ProposalPreview";
@@ -24,6 +25,7 @@ export default function Home() {
     "adicionar_tech",
     "tecnologia",
     "agentes",
+    "negociacao",
   ].includes(step);
 
   // Steps that are full-width without sidebar
@@ -50,6 +52,7 @@ export default function Home() {
             {step === "adicionar_tech" && <TecnologiaAvulsa />}
             {step === "tecnologia" && <TecnologiaAvulsa />}
             {step === "agentes" && <AgentesSection />}
+            {step === "negociacao" && <NegociacaoSection />}
           </main>
 
           {/* Cart sidebar */}

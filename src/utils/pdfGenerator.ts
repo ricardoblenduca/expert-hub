@@ -25,7 +25,7 @@ export async function generateProposalPDF(proposta: Proposta) {
   let y = 0;
 
   const { carrinho, resumo, cliente, consultor } = proposta;
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, assistentesGeniusAI, agentes, coprodutor, desconto } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, centralInteligencia, agentes, coprodutor, desconto } = carrinho;
 
   // Helper function to strip emojis for PDF (jsPDF doesn't render emojis well)
   function stripEmoji(text: string): string {
@@ -396,7 +396,7 @@ export async function generateProposalPDF(proposta: Proposta) {
     });
   }
 
-  // Co-produtor section
+  // Co-produtor section V0.12: sem calculo de comissao
   if (coprodutor?.ativo) {
     checkPageBreak(25);
     doc.setFillColor(...COLORS.bgLight);
@@ -417,17 +417,18 @@ export async function generateProposalPDF(proposta: Proposta) {
       bodyText(`Email: ${coprodutor.email}`, false, 3);
     }
     bodyText(`Percentual de Comissao: ${coprodutor.percentualComissao}%`, false, 3);
-    bodyText(`Comissao Estimada: ${formatCurrency(resumo.coprodutorComissao)}/mes`, true, 3);
 
     if (coprodutor.observacoes) {
       y += 2;
       bodyText(`Observacoes: ${coprodutor.observacoes}`, false, 3);
     }
+    y += 2;
+    bodyText("Os detalhes da parceria serao tratados separadamente.", false, 3);
     y += 4;
   }
 
-  // Genius AI Assistentes V0.11
-  if (assistentesGeniusAI > 0) {
+  // Central de Inteligencia V0.12
+  if (centralInteligencia?.pacoteSelecionado) {
     checkPageBreak(25);
     doc.setFillColor(240, 248, 255); // Light blue
     doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
@@ -435,20 +436,19 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
     doc.text(
-      `${sectionNum}. GENIUS AI - ASSISTENTES EXTRAS`,
+      `${sectionNum}. CENTRAL DE INTELIGENCIA`,
       margin + 3,
       y + 4
     );
     y += 14;
     sectionNum++;
 
-    const baseAssistentes = nivel === "business" ? "5 CreatorGPT + 1 Suporte" : "10 CreatorGPT + 3 Assistentes";
-    const totalAssistentes = (nivel === "business" ? 6 : 13) + assistentesGeniusAI;
+    const pacoteNome = centralInteligencia.pacoteSelecionado === "pacote_5"
+      ? "5 Assistentes"
+      : "10 Assistentes";
 
-    bodyText(`Assistentes incluidos no pacote: ${baseAssistentes}`, false, 3);
-    bodyText(`Assistentes adicionais: +${assistentesGeniusAI}`, false, 3);
-    bodyText(`Custo adicional: +${formatCurrency(resumo.assistentesGeniusAIMensal)}/mes`, true, 3);
-    bodyText(`Total de assistentes: ${totalAssistentes} assistentes`, true, 3);
+    bodyText(`Pacote selecionado: ${pacoteNome}`, false, 3);
+    bodyText(`Investimento (Setup): ${formatCurrency(centralInteligencia.setupTotal)}`, true, 3);
     y += 4;
   }
 
@@ -553,10 +553,9 @@ export async function generateProposalPDF(proposta: Proposta) {
   // Calculate dynamic box height
   let boxHeight = 20;
   if (resumo.totalEntrada > 0 || resumo.totalSetup > 0) boxHeight += 24;
+  if (resumo.centralInteligenciaSetup > 0) boxHeight += 6;
   if (resumo.totalUpgradesMensal > 0) boxHeight += 6;
-  if (resumo.assistentesGeniusAIMensal > 0) boxHeight += 6;
   if (resumo.agentesMensal > 0) boxHeight += 6;
-  if (resumo.coprodutorComissao > 0) boxHeight += 6;
   if (resumo.valorDesconto > 0) boxHeight += 14;
   if (resumo.economia > 0) boxHeight += 6;
   if (resumo.economiaAnualDesconto > 0) boxHeight += 6;
@@ -587,6 +586,19 @@ export async function generateProposalPDF(proposta: Proposta) {
       doc.setTextColor(...COLORS.grafite);
       doc.setFont("helvetica", "bold");
       doc.text(formatCurrency(resumo.totalEntrada), boxRight, y + 4, {
+        align: "right",
+      });
+      y += 6;
+    }
+
+    if (resumo.centralInteligenciaSetup > 0) {
+      doc.setFontSize(9);
+      doc.setTextColor(...COLORS.cinza);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Setup Central de Inteligencia (${resumo.centralInteligenciaPacote}):`, boxMargin, y + 4);
+      doc.setTextColor(...COLORS.azul);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatCurrency(resumo.centralInteligenciaSetup), boxRight, y + 4, {
         align: "right",
       });
       y += 6;
@@ -651,19 +663,6 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 6;
   }
 
-  if (resumo.assistentesGeniusAIMensal > 0) {
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.cinza);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Assistentes Genius AI (${assistentesGeniusAI}x):`, boxMargin, y + 4);
-    doc.setTextColor(...COLORS.azul);
-    doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(resumo.assistentesGeniusAIMensal), boxRight, y + 4, {
-      align: "right",
-    });
-    y += 6;
-  }
-
   if (resumo.agentesMensal > 0) {
     doc.setFontSize(9);
     doc.setTextColor(...COLORS.cinza);
@@ -672,19 +671,6 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
     doc.text(formatCurrency(resumo.agentesMensal), boxRight, y + 4, {
-      align: "right",
-    });
-    y += 6;
-  }
-
-  if (resumo.coprodutorComissao > 0) {
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.cinza);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Comissao Co-produtor (${coprodutor?.percentualComissao}%):`, boxMargin, y + 4);
-    doc.setTextColor(180, 120, 0); // Amber color
-    doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(resumo.coprodutorComissao), boxRight, y + 4, {
       align: "right",
     });
     y += 6;

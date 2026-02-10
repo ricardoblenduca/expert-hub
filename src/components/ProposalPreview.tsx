@@ -18,7 +18,7 @@ export default function ProposalPreview() {
   const [generating, setGenerating] = useState(false);
 
   const resumo = calcularResumo();
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, assistentesGeniusAI, agentes, coprodutor, desconto } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, centralInteligencia, agentes, coprodutor, desconto } = carrinho;
 
   const modalidadeData = modalidade ? modalidades[modalidade] : null;
   const nivelData = nivel ? niveisMap[nivel] : null;
@@ -464,7 +464,7 @@ export default function ProposalPreview() {
               </div>
             )}
 
-            {/* Co-produtor */}
+            {/* Co-produtor V0.12: sem calculo de valor */}
             {coprodutor?.ativo && (
               <div className="mb-6 border border-gray-100 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-3">
@@ -494,12 +494,6 @@ export default function ProposalPreview() {
                       {coprodutor.percentualComissao}%
                     </span>
                   </div>
-                  <div className="flex justify-between text-sm font-kanit border-t border-gray-200 pt-2 mt-2">
-                    <span className="text-blenduca-cinza-medio">Comissao Estimada:</span>
-                    <span className="font-bold text-amber-600">
-                      {formatCurrency(resumo.coprodutorComissao)}/mes
-                    </span>
-                  </div>
                   {coprodutor.observacoes && (
                     <div className="mt-2 pt-2 border-t border-gray-100">
                       <p className="font-kanit text-xs text-blenduca-cinza-medio">
@@ -507,42 +501,37 @@ export default function ProposalPreview() {
                       </p>
                     </div>
                   )}
+                  <div className="mt-2 pt-2 border-t border-gray-100">
+                    <p className="font-kanit text-xs text-blue-600">
+                      Os detalhes da parceria serao tratados separadamente.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Genius AI Assistentes V0.11 */}
-            {assistentesGeniusAI > 0 && (
+            {/* Central de Inteligência V0.12 */}
+            {centralInteligencia.pacoteSelecionado && (
               <div className="mb-6 border border-blue-200 bg-blue-50/30 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blue-600 text-white px-2 py-1 rounded">
-                    GENIUS AI - ASSISTENTES EXTRAS
+                    CENTRAL DE INTELIGENCIA
                   </span>
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm font-kanit">
-                    <span className="text-blenduca-cinza-medio">Assistentes incluidos no pacote:</span>
-                    <span className="font-medium text-blenduca-grafite">
-                      {nivel === "business" ? "5 CreatorGPT + 1 Suporte" : "10 CreatorGPT + 3 Assistentes"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm font-kanit">
-                    <span className="text-blenduca-cinza-medio">Assistentes adicionais:</span>
-                    <span className="font-semibold text-blue-600">
-                      +{assistentesGeniusAI}
+                    <span className="text-blenduca-cinza-medio">Pacote selecionado:</span>
+                    <span className="font-semibold text-blenduca-grafite">
+                      {centralInteligencia.pacoteSelecionado === "pacote_5"
+                        ? "5 Assistentes"
+                        : "10 Assistentes"}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm font-kanit border-t border-blue-200 pt-2 mt-2">
-                    <span className="text-blenduca-cinza-medio">Custo adicional:</span>
+                    <span className="text-blenduca-cinza-medio">Investimento (Setup):</span>
                     <span className="font-bold text-blue-600">
-                      +{formatCurrency(resumo.assistentesGeniusAIMensal)}/mes
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm font-kanit">
-                    <span className="font-semibold text-blenduca-grafite">Total de assistentes:</span>
-                    <span className="font-bold text-blue-600">
-                      {(nivel === "business" ? 6 : 13) + assistentesGeniusAI} assistentes
+                      {formatCurrency(centralInteligencia.setupTotal)}
                     </span>
                   </div>
                 </div>
@@ -665,6 +654,14 @@ export default function ProposalPreview() {
                         </span>
                       </div>
                     )}
+                    {resumo.centralInteligenciaSetup > 0 && (
+                      <div className="flex justify-between text-sm font-kanit">
+                        <span className="text-blenduca-cinza-medio">Setup Central de Inteligencia ({resumo.centralInteligenciaPacote}):</span>
+                        <span className="font-medium text-blue-600">
+                          {formatCurrency(resumo.centralInteligenciaSetup)}
+                        </span>
+                      </div>
+                    )}
                     {resumo.agentesSetup > 0 && (
                       <div className="flex justify-between text-sm font-kanit">
                         <span className="text-blenduca-cinza-medio">Setup Agentes A.I:</span>
@@ -703,27 +700,11 @@ export default function ProposalPreview() {
                     </span>
                   </div>
                 )}
-                {resumo.assistentesGeniusAIMensal > 0 && (
-                  <div className="flex justify-between text-sm font-kanit">
-                    <span className="text-blenduca-cinza-medio">Assistentes Genius AI ({assistentesGeniusAI}x):</span>
-                    <span className="font-medium text-blue-600">
-                      {formatCurrency(resumo.assistentesGeniusAIMensal)}
-                    </span>
-                  </div>
-                )}
                 {resumo.agentesMensal > 0 && (
                   <div className="flex justify-between text-sm font-kanit">
                     <span className="text-blenduca-cinza-medio">Agentes A.I:</span>
                     <span className="font-medium text-blenduca-grafite">
                       {formatCurrency(resumo.agentesMensal)}
-                    </span>
-                  </div>
-                )}
-                {resumo.coprodutorComissao > 0 && (
-                  <div className="flex justify-between text-sm font-kanit">
-                    <span className="text-blenduca-cinza-medio">Comissao Co-produtor ({coprodutor?.percentualComissao}%):</span>
-                    <span className="font-medium text-amber-600">
-                      {formatCurrency(resumo.coprodutorComissao)}
                     </span>
                   </div>
                 )}

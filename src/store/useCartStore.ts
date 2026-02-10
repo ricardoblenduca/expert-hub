@@ -14,6 +14,7 @@ import type {
   CoProdutorConfig,
   DescontoConfig,
   TipoDesconto,
+  CentralInteligenciaPacoteId,
 } from "@/types";
 import { precosMatriz } from "@/data/precosMatriz";
 import {
@@ -22,7 +23,7 @@ import {
 } from "@/data/tecnologiaInclusa";
 import { experienceFlixAvulso, funnelPagesAvulso } from "@/data/tecnologiaAvulsa";
 
-// V5.0: New step flow with entry points
+// V5.0: New step flow with entry points (V0.12: Added negociacao)
 export type Step =
   | "home" // Tela inicial com 3 pontos de entrada
   | "modalidade" // Escolha de modalidade (Programas)
@@ -30,7 +31,8 @@ export type Step =
   | "customizacoes" // Upgrades (só para Pacote Completo)
   | "adicionar_tech" // Adicionar tech ao Pacote Consultoria/Comunidade
   | "tecnologia" // Contratação avulsa de tecnologia
-  | "agentes" // Agentes A.I (pode ser avulso ou adicionar)
+  | "agentes" // Agentes A.I (pode ser avulso ou adicionar) + Central de Inteligência
+  | "negociacao" // Negociação: Desconto + Co-produtor (V0.12)
   | "cliente" // Dados do cliente
   | "preview"; // Preview da proposta
 
@@ -79,8 +81,8 @@ interface StoreState {
   // Co-produtor (Business/Scale only)
   setCoprodutor: (config: CoProdutorConfig | null) => void;
 
-  // Genius AI assistentes extras (Business/Scale only) - V0.11
-  setAssistentesGeniusAI: (quantidade: number) => void;
+  // Central de Inteligência (Business/Scale only) - V0.12
+  setCentralInteligenciaPacote: (pacoteId: CentralInteligenciaPacoteId) => void;
 
   // Desconto comercial V0.11
   setDescontoAtivo: (ativo: boolean) => void;
@@ -142,6 +144,11 @@ const initialDesconto: DescontoConfig = {
   motivo: "",
 };
 
+const initialCentralInteligencia = {
+  pacoteSelecionado: null as CentralInteligenciaPacoteId,
+  setupTotal: 0,
+};
+
 const initialCarrinho: CarrinhoState = {
   tipoProposta: null,
   modalidade: null,
@@ -149,7 +156,7 @@ const initialCarrinho: CarrinhoState = {
   tecnologiaAvulsa: null,
   upgradeExperienceFlix: null,
   funisExtras: 0,
-  assistentesGeniusAI: 0,
+  centralInteligencia: initialCentralInteligencia,
   agentes: [],
   coprodutor: null,
   desconto: initialDesconto,
@@ -410,14 +417,27 @@ export const useCartStore = create<StoreState>((set, get) => ({
       },
     })),
 
-  // Genius AI assistentes extras (Business/Scale only) - V0.11
-  setAssistentesGeniusAI: (quantidade) =>
-    set((state) => ({
-      carrinho: {
-        ...state.carrinho,
-        assistentesGeniusAI: Math.max(0, Math.min(20, quantidade)),
-      },
-    })),
+  // Central de Inteligência (Business/Scale only) - V0.12
+  setCentralInteligenciaPacote: (pacoteId) =>
+    set((state) => {
+      // Calculate setup based on package
+      let setupTotal = 0;
+      if (pacoteId === "pacote_5") {
+        setupTotal = 2500;
+      } else if (pacoteId === "pacote_10") {
+        setupTotal = 5000;
+      }
+
+      return {
+        carrinho: {
+          ...state.carrinho,
+          centralInteligencia: {
+            pacoteSelecionado: pacoteId,
+            setupTotal,
+          },
+        },
+      };
+    }),
 
   // Desconto comercial V0.11
   setDescontoAtivo: (ativo) =>
@@ -510,7 +530,7 @@ export const useCartStore = create<StoreState>((set, get) => ({
       tecnologiaAvulsa,
       upgradeExperienceFlix,
       funisExtras,
-      assistentesGeniusAI,
+      centralInteligencia,
       agentes,
       coprodutor,
       desconto,
@@ -527,10 +547,11 @@ export const useCartStore = create<StoreState>((set, get) => ({
       upgradeFlixMensal: 0,
       funisExtrasMensal: 0,
       totalUpgradesMensal: 0,
-      assistentesGeniusAIMensal: 0,
+      centralInteligenciaSetup: 0,
+      centralInteligenciaPacote: null,
       agentesSetup: 0,
       agentesMensal: 0,
-      coprodutorComissao: 0,
+      coprodutorNome: "",
       totalSetup: 0,
       totalEntrada: 0,
       subtotalMensal: 0,
@@ -574,9 +595,12 @@ export const useCartStore = create<StoreState>((set, get) => ({
     resumo.totalUpgradesMensal =
       resumo.upgradeFlixMensal + resumo.funisExtrasMensal;
 
-    // Genius AI assistentes extras (Business/Scale only) - V0.11
-    if ((nivel === "business" || nivel === "scale") && assistentesGeniusAI > 0) {
-      resumo.assistentesGeniusAIMensal = assistentesGeniusAI * 500;
+    // Central de Inteligência (Business/Scale only) - V0.12
+    if ((nivel === "business" || nivel === "scale") && centralInteligencia.pacoteSelecionado) {
+      resumo.centralInteligenciaSetup = centralInteligencia.setupTotal;
+      resumo.centralInteligenciaPacote = centralInteligencia.pacoteSelecionado === "pacote_5"
+        ? "5 Assistentes"
+        : "10 Assistentes";
     }
 
     // Tecnologia avulsa
@@ -595,20 +619,17 @@ export const useCartStore = create<StoreState>((set, get) => ({
     resumo.agentesMensal = agentes.reduce((sum, a) => sum + a.mensalTotal, 0);
 
     // Totais (antes do desconto)
-    resumo.totalSetup = resumo.agentesSetup;
+    resumo.totalSetup = resumo.agentesSetup + resumo.centralInteligenciaSetup;
     resumo.totalEntrada = resumo.pacoteEntrada + resumo.techAvulsaEntrada;
     resumo.subtotalMensal =
       resumo.pacoteMensal +
       resumo.totalUpgradesMensal +
-      resumo.assistentesGeniusAIMensal +
       resumo.techAvulsaMensal +
       resumo.agentesMensal;
 
-    // Co-produtor commission (percentage of subtotalMensal)
-    if (coprodutor?.ativo && coprodutor.percentualComissao > 0) {
-      resumo.coprodutorComissao = Math.round(
-        (resumo.subtotalMensal * coprodutor.percentualComissao) / 100
-      );
+    // Co-produtor name (V0.12: apenas dados, sem cálculo de comissão)
+    if (coprodutor?.ativo && coprodutor.nome) {
+      resumo.coprodutorNome = coprodutor.nome;
     }
 
     // Desconto V0.11
@@ -720,7 +741,10 @@ Economia: R$ ${economia.toLocaleString("pt-BR")}/mês`,
   resetCarrinho: () =>
     set({
       step: "home",
-      carrinho: initialCarrinho,
+      carrinho: {
+        ...initialCarrinho,
+        centralInteligencia: { ...initialCentralInteligencia },
+      },
       dadosCliente: initialDadosCliente,
     }),
 }));

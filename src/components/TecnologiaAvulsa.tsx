@@ -37,6 +37,9 @@ export default function TecnologiaAvulsa() {
   const [showEntregaveis, setShowEntregaveis] = useState(false);
   const [expandedFlix, setExpandedFlix] = useState<NivelId | null>(null);
   const [expandedFunnel, setExpandedFunnel] = useState<string | null>(null);
+  // V0.9: Toggle for showing/hiding resources
+  const [showFlixRecursos, setShowFlixRecursos] = useState<Record<string, boolean>>({});
+  const [showFunnelRecursos, setShowFunnelRecursos] = useState<Record<string, boolean>>({});
 
   // Determine context
   const { modalidade, nivel, coprodutor } = carrinho;
@@ -285,36 +288,49 @@ export default function TecnologiaAvulsa() {
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          {niveis.map((nivel) => {
-            const flix = experienceFlixAvulso[nivel.id];
-            const isSelected = selectedFlix === nivel.id;
-            const isExpanded = expandedFlix === nivel.id;
+          {niveis.map((nivelItem) => {
+            const flix = experienceFlixAvulso[nivelItem.id];
+            const isSelected = selectedFlix === nivelItem.id;
 
             return (
               <div
-                key={nivel.id}
+                key={nivelItem.id}
                 className={`bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-lg ${
                   isSelected ? "border-blenduca-azul shadow-lg" : "border-gray-100 hover:border-blenduca-azul/50"
                 }`}
-                onClick={() => handleSelectFlix(isSelected ? null : nivel.id)}
+                onClick={() => handleSelectFlix(isSelected ? null : nivelItem.id)}
               >
-                <div className="h-1.5 rounded-t-xl" style={{ backgroundColor: nivel.cor }} />
+                <div className="h-1.5 rounded-t-xl" style={{ backgroundColor: nivelItem.cor }} />
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span
                       className="font-play text-[10px] font-bold tracking-wider px-2 py-1 rounded text-white"
-                      style={{ backgroundColor: nivel.cor }}
+                      style={{ backgroundColor: nivelItem.cor }}
                     >
-                      {nivel.nome}
+                      {nivelItem.nome}
                     </span>
                     {isSelected && (
                       <span className="text-green-500 text-lg">✓</span>
                     )}
                   </div>
 
-                  <p className="font-kanit text-xs text-blenduca-cinza-medio mb-3">
+                  <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2">
                     {flix.descricao}
                   </p>
+
+                  {/* V0.9: Limites do plano */}
+                  <div className="bg-gray-50 rounded-lg p-2 mb-3 text-[10px]">
+                    <div className="flex justify-between font-kanit text-blenduca-cinza-medio">
+                      <span>Areas:</span>
+                      <span className="font-semibold text-blenduca-grafite">{flix.limites.areas}</span>
+                    </div>
+                    <div className="flex justify-between font-kanit text-blenduca-cinza-medio">
+                      <span>Membros:</span>
+                      <span className="font-semibold text-blenduca-grafite">
+                        {typeof flix.limites.usuariosAtivos === "number" ? `Até ${flix.limites.usuariosAtivos}` : flix.limites.usuariosAtivos}
+                      </span>
+                    </div>
+                  </div>
 
                   <div className="border-t border-gray-100 pt-3">
                     {flix.investimento.entrada && flix.investimento.entrada > 0 && (
@@ -343,14 +359,56 @@ export default function TecnologiaAvulsa() {
           })}
         </div>
 
-        {/* Expanded Flix Details */}
+        {/* Expanded Flix Details - V0.9 */}
         {selectedFlix && experienceFlixAvulso[selectedFlix] && (() => {
           const flixData = experienceFlixAvulso[selectedFlix];
+          const showRecursos = showFlixRecursos[selectedFlix] ?? false;
           return (
           <div className="mt-4 bg-gray-50 rounded-lg p-4 animate-fade-in-up">
             <h4 className="font-kanit font-bold text-sm text-blenduca-grafite mb-3">
               {flixData.nome} - Detalhes
             </h4>
+
+            {/* V0.9: Limites do plano */}
+            <div className="bg-white rounded-lg p-3 border border-gray-100 mb-4">
+              <p className="font-kanit text-[10px] font-bold text-blenduca-cinza-medio uppercase mb-2">
+                Limites do Plano
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center">
+                  <p className="font-kanit text-xs text-blenduca-cinza-medio">Areas de Membros</p>
+                  <p className="font-kanit font-bold text-lg text-blenduca-grafite">{flixData.limites.areas}</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-kanit text-xs text-blenduca-cinza-medio">Membros Ativos/mes</p>
+                  <p className="font-kanit font-bold text-lg text-blenduca-grafite">
+                    {typeof flixData.limites.usuariosAtivos === "number" ? `Até ${flixData.limites.usuariosAtivos}` : flixData.limites.usuariosAtivos}
+                  </p>
+                </div>
+              </div>
+              {flixData.limites.custoExcedente > 0 && (
+                <p className="font-kanit text-[10px] text-blenduca-cinza-medio mt-2 text-center">
+                  Excedente: R$ {flixData.limites.custoExcedente.toFixed(2)}/membro adicional
+                </p>
+              )}
+            </div>
+
+            {/* V0.9: Diferenciais */}
+            {flixData.diferenciais && flixData.diferenciais.length > 0 && (
+              <div className="bg-green-50/50 border-l-2 border-green-400 p-3 rounded-r mb-4">
+                <p className="font-kanit text-[10px] font-bold text-green-700 uppercase mb-2">
+                  Diferenciais deste plano
+                </p>
+                <ul className="space-y-1">
+                  {flixData.diferenciais.map((dif, i) => (
+                    <li key={i} className="flex items-start gap-2 font-kanit text-xs text-blenduca-grafite">
+                      <span className="text-green-500 mt-0.5">+</span>
+                      {dif}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Significado */}
             <div className="bg-amber-50/50 border-l-2 border-amber-400 p-3 rounded-r mb-4">
@@ -362,20 +420,44 @@ export default function TecnologiaAvulsa() {
               </p>
             </div>
 
-            {/* Recursos */}
-            <div className="mb-4">
-              <p className="font-kanit text-xs font-bold text-blenduca-grafite mb-2">
-                Recursos inclusos:
-              </p>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                {flixData.recursos.map((recurso, i) => (
-                  <li key={i} className="flex items-start gap-2 font-kanit text-xs text-blenduca-cinza-medio">
-                    <span className="text-green-500 mt-0.5">✓</span>
-                    {recurso}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {/* V0.9: Toggle recursos */}
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowFlixRecursos({ ...showFlixRecursos, [selectedFlix]: !showRecursos }); }}
+              className="w-full py-2 px-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors font-kanit text-xs text-blenduca-grafite mb-4"
+            >
+              {showRecursos ? "▲ Ocultar recursos" : "▼ Ver recursos"}
+            </button>
+
+            {/* Recursos (colapsável) */}
+            {showRecursos && (
+              <div className="mb-4 animate-fade-in-up">
+                <p className="font-kanit text-xs font-bold text-blenduca-grafite mb-2">
+                  Recursos inclusos:
+                </p>
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                  {flixData.recursos.map((recurso, i) => (
+                    <li key={i} className="flex items-start gap-2 font-kanit text-xs text-blenduca-cinza-medio">
+                      <span className="text-green-500 mt-0.5">✓</span>
+                      {recurso}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* V0.9: Detalhes adicionais */}
+            {flixData.detalhes && (
+              <div className="bg-gray-100 rounded-lg p-3 mb-4 text-xs">
+                <div className="flex justify-between font-kanit text-blenduca-cinza-medio mb-1">
+                  <span>Contrato:</span>
+                  <span className="text-blenduca-grafite">{flixData.detalhes.contrato}</span>
+                </div>
+                <div className="flex justify-between font-kanit text-blenduca-cinza-medio">
+                  <span>Ideal para:</span>
+                  <span className="text-blenduca-grafite">{flixData.detalhes.idealPara}</span>
+                </div>
+              </div>
+            )}
 
             {/* Investimento */}
             <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100">
@@ -465,12 +547,13 @@ export default function TecnologiaAvulsa() {
           })}
         </div>
 
-        {/* Expanded Funnel Details */}
+        {/* Expanded Funnel Details - V0.9 */}
         {selectedFunnelPacote && (
           <div className="mt-4 bg-gray-50 rounded-lg p-4 animate-fade-in-up">
             {(() => {
               const pacote = funnelPagesAvulso.pacotesSugeridos.find((p) => p.id === selectedFunnelPacote);
               if (!pacote) return null;
+              const showRecursos = showFunnelRecursos[selectedFunnelPacote] ?? false;
 
               return (
                 <>
@@ -481,13 +564,27 @@ export default function TecnologiaAvulsa() {
                     {pacote.descricao}
                   </p>
 
+                  {/* V0.9: Limites do plano */}
+                  <div className="bg-white rounded-lg p-3 border border-gray-100 mb-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="text-center">
+                        <p className="font-kanit text-xs text-blenduca-cinza-medio">Funis Inclusos</p>
+                        <p className="font-kanit font-bold text-lg text-blenduca-vermelho">{pacote.funis}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="font-kanit text-xs text-blenduca-cinza-medio">Maximo Total</p>
+                        <p className="font-kanit font-bold text-lg text-blenduca-grafite">20 funis</p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Significado */}
                   <div className="bg-amber-50/50 border-l-2 border-amber-400 p-3 rounded-r mb-4">
                     <p className="font-kanit text-[10px] font-bold text-amber-700 uppercase mb-1">
                       O que isso significa para voce
                     </p>
                     <p className="font-kanit text-xs text-blenduca-grafite">
-                      {FUNNEL_SIGNIFICADOS[pacote.id]}
+                      {pacote.significado || FUNNEL_SIGNIFICADOS[pacote.id]}
                     </p>
                   </div>
 
@@ -508,20 +605,46 @@ export default function TecnologiaAvulsa() {
                     </div>
                   )}
 
-                  {/* Recursos */}
-                  <div className="mb-4">
-                    <p className="font-kanit text-xs font-bold text-blenduca-grafite mb-2">
-                      O que cada funil inclui:
-                    </p>
-                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                      {funnelPagesAvulso.oqueCadaFunilInclui.map((item, i) => (
-                        <li key={i} className="flex items-start gap-2 font-kanit text-xs text-blenduca-cinza-medio">
-                          <span className="text-green-500 mt-0.5">✓</span>
-                          {item.item}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  {/* V0.9: Toggle recursos */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowFunnelRecursos({ ...showFunnelRecursos, [selectedFunnelPacote]: !showRecursos }); }}
+                    className="w-full py-2 px-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition-colors font-kanit text-xs text-blenduca-grafite mb-4"
+                  >
+                    {showRecursos ? "▲ Ocultar recursos" : "▼ Ver recursos"}
+                  </button>
+
+                  {/* Recursos (colapsável) */}
+                  {showRecursos && (
+                    <div className="mb-4 animate-fade-in-up">
+                      <p className="font-kanit text-xs font-bold text-blenduca-grafite mb-2">
+                        O que cada funil inclui:
+                      </p>
+                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
+                        {funnelPagesAvulso.oqueCadaFunilInclui.map((item, i) => (
+                          <li key={i} className="flex items-start gap-2 font-kanit text-xs text-blenduca-cinza-medio">
+                            <span className="text-green-500 mt-0.5">✓</span>
+                            {item.item}
+                          </li>
+                        ))}
+                      </ul>
+                      {/* V0.9: Recursos do pacote se disponíveis */}
+                      {pacote.recursos && pacote.recursos.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <p className="font-kanit text-xs font-bold text-blenduca-grafite mb-2">
+                            Recursos do {pacote.nome}:
+                          </p>
+                          <ul className="space-y-1">
+                            {pacote.recursos.map((recurso, i) => (
+                              <li key={i} className="flex items-start gap-2 font-kanit text-xs text-blenduca-cinza-medio">
+                                <span className="text-green-500 mt-0.5">✓</span>
+                                {recurso}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Funis Extras - V0.8 */}
                   <div className="bg-white rounded-lg p-4 border border-gray-100 mb-4">

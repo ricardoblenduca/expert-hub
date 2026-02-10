@@ -49,13 +49,38 @@ export async function generateProposalPDF(proposta: Proposta) {
 
   function addFooter() {
     doc.setDrawColor(...COLORS.cinzaClaro);
-    doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+    doc.line(margin, pageHeight - 28, pageWidth - margin, pageHeight - 28);
+
+    // Main title
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.vermelho);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      "Blenduca - Experts em Negocios de Conhecimento",
+      pageWidth / 2,
+      pageHeight - 23,
+      { align: "center" }
+    );
+
+    // Institutional phrase
+    doc.setFontSize(7);
+    doc.setTextColor(...COLORS.grafite);
+    doc.setFont("helvetica", "italic");
+    doc.text(
+      "Somos a Blenduca! Experts em negocios de conhecimento! #OMelhorDeCadaExpert",
+      pageWidth / 2,
+      pageHeight - 17,
+      { align: "center" }
+    );
+
+    // Contact info
     doc.setFontSize(7);
     doc.setTextColor(...COLORS.cinza);
+    doc.setFont("helvetica", "normal");
     doc.text(
-      "Blenduca - Experts em Negocios de Conhecimento | blenduca.com | contato@blenduca.com",
+      "blenduca.com.br | comercial@blenduca.com.br",
       pageWidth / 2,
-      pageHeight - 10,
+      pageHeight - 11,
       { align: "center" }
     );
   }
@@ -666,8 +691,9 @@ export async function generateProposalPDF(proposta: Proposta) {
   sectionTitle("CONDICOES COMERCIAIS");
 
   bulletPoint("Duracao: Contrato de 12 meses");
-  bulletPoint("Periodo Minimo: 3 meses");
+  bulletPoint("Periodo Minimo: 6 meses");
   bulletPoint("Aviso Previo: 30 dias");
+  bulletPoint("Multa por Rescisao Antecipada: 20% das parcelas restantes (primeiro ano)");
   if (carrinho.condicaoPagamento === "revenue_share") {
     let revenueText = "Condicao Especial: Revenue Share";
     if (carrinho.revenueShareObservacoes) {

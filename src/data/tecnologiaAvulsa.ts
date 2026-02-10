@@ -5,7 +5,7 @@ import type {
 } from "@/types";
 
 // ============================================
-// EXPERIENCE FLIX - COMPRA AVULSA
+// EXPERIENCE FLIX - COMPRA AVULSA (V0.9)
 // ============================================
 
 export const experienceFlixAvulso: Record<NivelId, ExperienceFlixAvulso> = {
@@ -21,10 +21,14 @@ export const experienceFlixAvulso: Record<NivelId, ExperienceFlixAvulso> = {
       "Vitrine Personalizada estilo Netflix",
       "Trilhas de aprendizado",
       "Plataforma 100% Whitelabel com Domínio Próprio",
-      "Integração com Gateway de Pagamento",
+      "Integração com Gateway de Pagamento Externo",
+      "Hospedagem de Vídeos Integrada",
       "Integração com Vimeo e YouTube",
-      "Atendimento via WhatsApp e Suporte Técnico",
+      "Apoio na Migração de Conteúdos e Alunos",
+      "Atendimento via Whatsapp e Suporte Técnico",
+      "Transmissões ao Vivo",
     ],
+    diferenciais: [],
     beneficios: {
       vitrine_netflix: {
         titulo: 'Vitrine Personalizada estilo "Netflix"',
@@ -56,9 +60,54 @@ export const experienceFlixAvulso: Record<NivelId, ExperienceFlixAvulso> = {
     investimento: {
       entrada: 497,
       mensal: 497,
-      condicoes: "12 meses (R$ 5.964 à vista com desconto)",
+      condicoes: "Contrato de 12 meses",
     },
     descontoNoPacoteCompleto: 197,
+    naoInclui: [
+      "Produção de banners e capas",
+      "Atendimento dedicado para postagem",
+    ],
+    detalhes: {
+      excedenteMembros: "R$ 3,00/mensal",
+      contrato: "Contrato de 12 meses",
+      idealPara: "Ideal para quem está começando",
+    },
+    upgrades: {
+      professional: {
+        planoDestino: "professional",
+        custoAdicional: 500,
+        diferenciais: [
+          "3 Áreas de Membros (vs 1)",
+          "Até 150 membros ativos (vs 100)",
+          "Produção de banners e capas",
+          "Atendimento dedicado para postagem",
+          "Excedente R$ 2,50/mês (vs R$ 3,00)",
+        ],
+      },
+      business: {
+        planoDestino: "business",
+        custoAdicional: 1000,
+        diferenciais: [
+          "Membros ilimitados (sem custo de excedente)",
+          "Comunidade integrada com múltiplos canais",
+          "Sessão de onboarding coletivo",
+          "Campanha 20mil disparos",
+          "Bônus: 200GB armazenamento + 300GB banda",
+        ],
+      },
+      scale: {
+        planoDestino: "scale",
+        custoAdicional: 1500,
+        diferenciais: [
+          "App próprio (Android e iOS)",
+          "Áreas ilimitadas",
+          "Aulas ao vivo (YouTube, Vimeo, Zoom)",
+          "Campanha 50mil disparos",
+          "5 Automações + 1 WhatsApp + 1 Chip",
+          "Bônus: 500GB armazenamento + 1TB banda",
+        ],
+      },
+    },
   },
 
   professional: {
@@ -67,11 +116,16 @@ export const experienceFlixAvulso: Record<NivelId, ExperienceFlixAvulso> = {
     nome: "Experience Flix Professional",
     descricao: "Plataforma premium com 3 áreas de membros",
     recursos: [
-      "TUDO DO STARTER",
+      "✅ TUDO DO STARTER",
       "3 Áreas de Membros completas",
       "Até 150 usuários ativos no mês",
       "Produção de banners e capas para toda plataforma",
       "Atendimento dedicado para postagem de conteúdos",
+    ],
+    diferenciais: [
+      "Produção de banners e capas",
+      "Atendimento dedicado para postagem",
+      "Maior capacidade de membros (150 vs 100)",
     ],
     limites: {
       areas: 3,
@@ -82,9 +136,39 @@ export const experienceFlixAvulso: Record<NivelId, ExperienceFlixAvulso> = {
     investimento: {
       entrada: 997,
       mensal: 997,
-      condicoes: "12 meses (R$ 11.964 à vista)",
+      condicoes: "Contrato de 12 meses",
     },
     descontoNoPacoteCompleto: 397,
+    detalhes: {
+      excedenteMembros: "R$ 2,50/mensal",
+      contrato: "Contrato de 12 meses",
+      idealPara: "Ideal para quem tem múltiplos cursos",
+    },
+    upgrades: {
+      business: {
+        planoDestino: "business",
+        custoAdicional: 500,
+        diferenciais: [
+          "Membros ilimitados (sem custo de excedente)",
+          "Comunidade integrada com múltiplos canais",
+          "Sessão de onboarding coletivo",
+          "Campanha 20mil disparos",
+          "Bônus: 200GB armazenamento + 300GB banda",
+        ],
+      },
+      scale: {
+        planoDestino: "scale",
+        custoAdicional: 1000,
+        diferenciais: [
+          "App próprio (Android e iOS)",
+          "Áreas ilimitadas",
+          "Aulas ao vivo (YouTube, Vimeo, Zoom)",
+          "Campanha 50mil disparos",
+          "5 Automações + 1 WhatsApp + 1 Chip",
+          "Bônus: 500GB armazenamento + 1TB banda",
+        ],
+      },
+    },
   },
 
   business: {
@@ -93,13 +177,20 @@ export const experienceFlixAvulso: Record<NivelId, ExperienceFlixAvulso> = {
     nome: "Experience Flix Business",
     descricao: "Plataforma business com membros ilimitados",
     recursos: [
-      "TUDO DO PROFESSIONAL",
+      "✅ TUDO DO PROFESSIONAL",
       "3 Áreas de Membros",
       "Membros ILIMITADOS",
       "Comunidade integrada com múltiplos canais",
       "Sessão de onboarding coletivo",
       "Campanha 20mil disparos",
       "Bônus: 200GB armazenamento + 300GB banda",
+    ],
+    diferenciais: [
+      "Membros ilimitados (sem custo excedente)",
+      "Comunidade integrada",
+      "Onboarding coletivo",
+      "Campanha 20mil disparos",
+      "200GB storage + 300GB banda",
     ],
     limites: {
       areas: 3,
@@ -109,9 +200,28 @@ export const experienceFlixAvulso: Record<NivelId, ExperienceFlixAvulso> = {
     investimento: {
       entrada: 1497,
       mensal: 1497,
-      condicoes: "12 meses (R$ 17.964 à vista)",
+      condicoes: "Contrato de 12 meses",
     },
     descontoNoPacoteCompleto: 597,
+    detalhes: {
+      excedenteMembros: "Sem custo adicional",
+      contrato: "Contrato de 12 meses",
+      idealPara: "Ideal para escalar sem limites",
+    },
+    upgrades: {
+      scale: {
+        planoDestino: "scale",
+        custoAdicional: 500,
+        diferenciais: [
+          "App próprio (Android e iOS)",
+          "Áreas ilimitadas (vs 3)",
+          "Aulas ao vivo integradas",
+          "Campanha 50mil disparos (vs 20mil)",
+          "5 Automações + 1 WhatsApp + 1 Chip",
+          "Bônus: 500GB + 1TB (vs 200GB + 300GB)",
+        ],
+      },
+    },
   },
 
   scale: {
@@ -120,13 +230,21 @@ export const experienceFlixAvulso: Record<NivelId, ExperienceFlixAvulso> = {
     nome: "Experience Flix Scale",
     descricao: "Plataforma enterprise com app próprio",
     recursos: [
-      "TUDO DO BUSINESS",
+      "✅ TUDO DO BUSINESS",
       "Áreas ILIMITADAS",
       "App próprio iOS e Android",
       "Aulas ao vivo (YouTube, Vimeo, Zoom)",
       "Campanha 50mil disparos",
       "5 Automações + 1 WhatsApp conexão + 1 Chip",
       "Bônus: 500GB armazenamento + 1TB banda",
+    ],
+    diferenciais: [
+      "App próprio (Android e iOS)",
+      "Aulas ao vivo integradas",
+      "Campanha 50mil disparos",
+      "5 Automações",
+      "1 WhatsApp + Chip",
+      "500GB + 1TB banda",
     ],
     limites: {
       areas: "Ilimitado",
@@ -136,14 +254,20 @@ export const experienceFlixAvulso: Record<NivelId, ExperienceFlixAvulso> = {
     investimento: {
       entrada: 1997,
       mensal: 1997,
-      condicoes: "12 meses (R$ 23.964 à vista)",
+      condicoes: "Contrato de 12 meses",
     },
     descontoNoPacoteCompleto: 797,
+    detalhes: {
+      excedenteMembros: "Sem custo adicional",
+      contrato: "Contrato de 12 meses",
+      idealPara: "Infraestrutura de unicórnio",
+    },
+    // No upgrades - máximo plano
   },
 };
 
 // ============================================
-// FUNNEL PAGES - COMPRA AVULSA (À LA CARTE)
+// FUNNEL PAGES - COMPRA AVULSA (V0.9)
 // ============================================
 
 export const funnelPagesAvulso: FunnelPagesAvulsoConfig = {
@@ -163,51 +287,140 @@ export const funnelPagesAvulso: FunnelPagesAvulsoConfig = {
   pacotesSugeridos: [
     {
       id: "funnel_starter",
-      nome: "PACOTE STARTER",
+      nome: "STARTER",
       funis: 1,
       preco: 197,
       descricao: "Página de Links + 1 Funil",
-      tipos: ["1x Sessão Estratégica ou Aplicação de Produto"],
+      tipos: ["1x Funil de Sessão Estratégica / Aplicação de Produto"],
+      recursos: [
+        "Página de Links personalizada",
+        "1 Funil (Sessão Estratégica OU Aplicação de Produto)",
+        "Squad de desenvolvimento (copy/design/dev)",
+        "Página de obrigado integrada ao WhatsApp",
+        "Atendimento via WhatsApp e Suporte Técnico",
+      ],
+      significado:
+        "Funil profissional completo. Squad desenvolve tudo: copy persuasivo, design que converte, código otimizado. Você só valida e publica.",
+      upgrades: {
+        professional: {
+          planoDestino: "funnel_professional",
+          custoAdicional: 200,
+          diferenciais: [
+            "+2 funis (total 3 funis)",
+            "Funil de Evento de Lançamento",
+            "Funil de Isca Digital Perpétuo",
+            "Automação de e-mails de confirmação",
+            "Integração CRM/Planilha",
+          ],
+        },
+        business: {
+          planoDestino: "funnel_business",
+          custoAdicional: 400,
+          diferenciais: [
+            "+4 funis (total 5 funis)",
+            "2 Funis de Aplicação de Produto",
+            "Sequência de Nutrição via E-mail",
+          ],
+        },
+        scale: {
+          planoDestino: "funnel_scale",
+          custoAdicional: 600,
+          diferenciais: [
+            "+6 funis (total 7 funis)",
+            "Automação Pré-vendas A.I",
+            "Múltiplos funis para testes",
+          ],
+        },
+      },
     },
     {
       id: "funnel_professional",
-      nome: "PACOTE PROFESSIONAL",
+      nome: "PROFESSIONAL",
       funis: 3,
       preco: 397,
       economia: 0,
       descricao: "Página de Links + 3 Funis",
       tipos: [
-        "1x Sessão Estratégica",
-        "1x Evento de Lançamento",
-        "1x Isca Digital Perpétua",
+        "1x Funil de Sessão Estratégica / Aplicação de Produto",
+        "1x Funil de Evento de Lançamento (Gratuito/Pago)",
+        "1x Funil de Isca Digital Perpétuo (Gratuito/Pago)",
       ],
+      recursos: [
+        "✅ TUDO DO STARTER",
+        "Automação para envio de e-mails de confirmação de inscrição",
+        "Integração dos inscritos no CRM/Planilha de inscritos",
+      ],
+      significado:
+        "3 funis profissionais + automações completas. Você tem funil para cada etapa da jornada: captura (isca), aquecimento (evento) e conversão (sessão/aplicação).",
+      upgrades: {
+        business: {
+          planoDestino: "funnel_business",
+          custoAdicional: 200,
+          diferenciais: [
+            "+2 funis (total 5 funis)",
+            "2 Funis de Aplicação de Produto",
+            "Sequência de Nutrição via E-mail Marketing",
+          ],
+        },
+        scale: {
+          planoDestino: "funnel_scale",
+          custoAdicional: 400,
+          diferenciais: [
+            "+4 funis (total 7 funis)",
+            "Automação Pré-vendas A.I",
+            "Testes A/B em múltiplos funis",
+          ],
+        },
+      },
     },
     {
       id: "funnel_business",
-      nome: "PACOTE BUSINESS",
+      nome: "BUSINESS",
       funis: 5,
       preco: 597,
       economia: 0,
       descricao: "Página de Links + 5 Funis",
       tipos: [
-        "1x Sessão Estratégica",
-        "2x Evento de Lançamento",
-        "2x Isca Digital Perpétua",
+        "1x Funil de Sessão Estratégica",
+        "1x Funil de Isca Digital Perpétuo",
+        "1x Funil de Evento de Lançamento",
+        "2x Funil de Aplicação de Produto",
       ],
+      recursos: [
+        "✅ TUDO DO PROFESSIONAL",
+        "Automação / Sequência de Nutrição via E-mail Marketing",
+      ],
+      significado:
+        "5 funis + nutrição automatizada. Funil completo de conversão em múltiplos produtos. Sequências de e-mail automáticas nutrem seus leads.",
+      upgrades: {
+        scale: {
+          planoDestino: "funnel_scale",
+          custoAdicional: 200,
+          diferenciais: [
+            "+2 funis (total 7 funis)",
+            "Automação Pré-vendas A.I",
+            "Qualificação inteligente de leads",
+          ],
+        },
+      },
     },
     {
       id: "funnel_scale",
-      nome: "PACOTE SCALE",
+      nome: "SCALE",
       funis: 7,
       preco: 797,
       economia: 0,
       descricao: "Página de Links + 7 Funis",
       tipos: [
-        "1x Sessão Estratégica",
-        "2x Isca Digital Perpétua",
-        "2x Evento de Lançamento",
-        "2x Aplicação de Produto",
+        "1x Funil de Sessão Estratégica",
+        "2x Funil de Isca Digital Perpétuo",
+        "2x Funil de Evento de Lançamento",
+        "2x Funil de Aplicação de Produto",
       ],
+      recursos: ["✅ TUDO DO BUSINESS", "Automação Pré-vendas A.I"],
+      significado:
+        "7 funis + IA de pré-vendas. Máquina de conversão automatizada. IA qualifica leads antes de chegarem em você.",
+      // No upgrades - máximo plano
     },
   ],
 
@@ -278,6 +491,27 @@ export const funnelPagesAvulso: FunnelPagesAvulsoConfig = {
 
 export function calcularPrecoFunnelCustom(quantidade: number): number {
   return quantidade * funnelPagesAvulso.precoBase.precoPorFunil;
+}
+
+// ============================================
+// HELPER: Obter pacote de funil por ID
+// ============================================
+
+export function getPacoteFunnelById(id: string) {
+  return funnelPagesAvulso.pacotesSugeridos.find((p) => p.id === id);
+}
+
+// ============================================
+// HELPER: Obter upgrades disponíveis para um nível
+// ============================================
+
+export function getFlixUpgradesForLevel(nivel: NivelId) {
+  return experienceFlixAvulso[nivel].upgrades || {};
+}
+
+export function getFunnelUpgradesForLevel(pacoteId: string) {
+  const pacote = getPacoteFunnelById(pacoteId);
+  return pacote?.upgrades || {};
 }
 
 // ============================================

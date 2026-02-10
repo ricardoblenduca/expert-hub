@@ -721,11 +721,15 @@ export default function ProposalPreview() {
               </li>
               <li className="flex items-start gap-2 text-sm font-kanit text-blenduca-cinza-medio">
                 <span className="text-blenduca-vermelho shrink-0">&#8226;</span>
-                Periodo Minimo: 3 meses
+                Periodo Minimo: 6 meses
               </li>
               <li className="flex items-start gap-2 text-sm font-kanit text-blenduca-cinza-medio">
                 <span className="text-blenduca-vermelho shrink-0">&#8226;</span>
                 Aviso Previo: 30 dias
+              </li>
+              <li className="flex items-start gap-2 text-sm font-kanit text-blenduca-cinza-medio">
+                <span className="text-blenduca-vermelho shrink-0">&#8226;</span>
+                Multa por Rescisao Antecipada: 20% das parcelas restantes (primeiro ano)
               </li>
               {carrinho.condicaoPagamento === "revenue_share" && (
                 <li className="flex items-start gap-2 text-sm font-kanit text-blenduca-cinza-medio">
@@ -762,11 +766,14 @@ export default function ProposalPreview() {
 
           {/* Footer */}
           <div className="border-t border-gray-200 pt-6 text-center">
-            <p className="font-kanit font-semibold text-sm text-blenduca-grafite">
+            <p className="font-kanit font-semibold text-sm text-blenduca-vermelho">
               Blenduca - Experts em Negocios de Conhecimento
             </p>
-            <p className="font-kanit text-xs text-blenduca-cinza-medio mt-0.5">
-              blenduca.com | contato@blenduca.com
+            <p className="font-kanit text-xs text-blenduca-grafite italic mt-1">
+              Somos a Blenduca! Experts em negocios de conhecimento! #OMelhorDeCadaExpert
+            </p>
+            <p className="font-kanit text-xs text-blenduca-cinza-medio mt-1">
+              blenduca.com.br | comercial@blenduca.com.br
             </p>
           </div>
         </div>

@@ -129,8 +129,14 @@ export interface TecnologiaNivel {
 export type TecnologiaInclusa = Record<NivelId, TecnologiaNivel>;
 
 // ============================================
-// EXPERIENCE FLIX AVULSO
+// EXPERIENCE FLIX AVULSO (V0.9 - WITH UPGRADES)
 // ============================================
+
+export interface FlixUpgradeOption {
+  planoDestino: NivelId;
+  custoAdicional: number;
+  diferenciais: string[];
+}
 
 export interface ExperienceFlixAvulso {
   id: string;
@@ -138,10 +144,18 @@ export interface ExperienceFlixAvulso {
   nome: string;
   descricao: string;
   recursos: string[];
+  diferenciais?: string[];
   beneficios?: Record<string, BeneficioRecurso>;
   limites: LimitesPlataforma;
   investimento: ValorAvulso;
   descontoNoPacoteCompleto: number;
+  naoInclui?: string[];
+  detalhes?: {
+    excedenteMembros?: string;
+    contrato?: string;
+    idealPara?: string;
+  };
+  upgrades?: Record<string, FlixUpgradeOption>;
 }
 
 // ============================================
@@ -160,6 +174,12 @@ export interface ItemFunilInclui {
   significado: string;
 }
 
+export interface FunnelUpgradeOption {
+  planoDestino: string;
+  custoAdicional: number;
+  diferenciais: string[];
+}
+
 export interface PacoteFunnelSugerido {
   id: string;
   nome: string;
@@ -168,6 +188,9 @@ export interface PacoteFunnelSugerido {
   economia?: number;
   descricao: string;
   tipos?: string[];
+  recursos?: string[];
+  significado?: string;
+  upgrades?: Record<string, FunnelUpgradeOption>;
 }
 
 export interface FunnelPagesAvulsoConfig {

@@ -1,18 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import { useCartStore } from "@/store/useCartStore";
 import { niveisMap } from "@/data/modalidades";
 import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
+import { pilares, contarEntregaveis, entregavelDisponivelNoNivel } from "@/data/entregaveis";
 import { formatCurrency } from "@/utils/formatting";
-import type { NivelId } from "@/types";
+import type { NivelId, CoProdutorConfig } from "@/types";
 
 export default function CustomizacoesSection() {
   const carrinho = useCartStore((s) => s.carrinho);
   const setUpgradeExperienceFlix = useCartStore((s) => s.setUpgradeExperienceFlix);
   const setFunisExtras = useCartStore((s) => s.setFunisExtras);
+  const setCoprodutor = useCartStore((s) => s.setCoprodutor);
   const setStep = useCartStore((s) => s.setStep);
 
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, coprodutor } = carrinho;
+
+  // Track if entregaveis section is expanded
+  const [entregaveisExpanded, setEntregaveisExpanded] = useState(false);
 
   // Only show for Pacote Completo modalidade
   if (modalidade !== "completo" || !nivel) {
@@ -26,6 +32,10 @@ export default function CustomizacoesSection() {
   const upgradeOpcao = upgradeExperienceFlixOpcoes.find((u) => u.de === nivel);
   const proximoNivel = upgradeOpcao?.para;
   const proximoNivelInfo = proximoNivel ? niveisMap[proximoNivel] : null;
+
+  // Co-produtor is only available for Business and Scale
+  const coprodutorDisponivel = nivel === "business" || nivel === "scale";
+  const totalEntregaveis = contarEntregaveis(nivel);
 
   const handleBack = () => {
     setStep("nivel");
@@ -41,6 +51,28 @@ export default function CustomizacoesSection() {
     } else if (proximoNivel) {
       setUpgradeExperienceFlix(proximoNivel);
     }
+  };
+
+  const handleCoprodutorToggle = () => {
+    if (coprodutor?.ativo) {
+      setCoprodutor(null);
+    } else {
+      setCoprodutor({
+        ativo: true,
+        nome: "",
+        email: "",
+        percentualComissao: 10,
+        observacoes: "",
+      });
+    }
+  };
+
+  const handleCoprodutorChange = (field: keyof CoProdutorConfig, value: string | number | boolean) => {
+    if (!coprodutor) return;
+    setCoprodutor({
+      ...coprodutor,
+      [field]: value,
+    });
   };
 
   return (
@@ -132,6 +164,99 @@ export default function CustomizacoesSection() {
           </span>
         </div>
       </div>
+
+      {/* Entregaveis Expansion Button */}
+      <button
+        onClick={() => setEntregaveisExpanded(!entregaveisExpanded)}
+        className="w-full mb-6 py-3 px-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 font-kanit text-sm text-blenduca-grafite"
+      >
+        <span>{entregaveisExpanded ? "▲" : "📋"}</span>
+        <span>
+          {entregaveisExpanded
+            ? "Fechar entregaveis"
+            : `Ver todos os ${totalEntregaveis} entregaveis inclusos no ${nivelInfo.nome}`}
+        </span>
+      </button>
+
+      {/* Expanded Entregaveis */}
+      {entregaveisExpanded && (
+        <div className="mb-6 bg-white border border-gray-100 rounded-xl p-5 animate-fade-in-up">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-2xl">📋</span>
+            <div>
+              <h3 className="font-kanit font-bold text-base text-blenduca-grafite">
+                Entregaveis do Pacote {nivelInfo.nome}
+              </h3>
+              <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                {totalEntregaveis} entregaveis inclusos no seu nivel
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            {pilares.map((pilar) => {
+              const entregaveisDisponiveis = pilar.entregaveis.filter((e) =>
+                entregavelDisponivelNoNivel(e, nivel)
+              );
+
+              if (entregaveisDisponiveis.length === 0) return null;
+
+              return (
+                <div key={pilar.id} className="border-t border-gray-100 pt-4">
+                  {/* Pilar Header */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">{pilar.icone}</span>
+                    <h4
+                      className="font-kanit font-bold text-sm uppercase tracking-wide"
+                      style={{ color: pilar.cor }}
+                    >
+                      {pilar.nome}
+                    </h4>
+                  </div>
+
+                  {/* Entregaveis - without significado */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {entregaveisDisponiveis.map((entregavel) => (
+                      <div
+                        key={entregavel.id}
+                        className="bg-gray-50/50 border border-gray-100 rounded-lg p-3"
+                      >
+                        <div className="flex items-start gap-2">
+                          <span className="text-base shrink-0">{entregavel.icone}</span>
+                          <div className="flex-1 min-w-0">
+                            <h5 className="font-kanit font-semibold text-sm text-blenduca-grafite mb-1">
+                              {entregavel.nome}
+                            </h5>
+
+                            {/* Detalhes do nivel - only this, no significado */}
+                            {entregavel.detalhesNivel?.[nivel] && (
+                              <div className="bg-blue-50/50 rounded p-2">
+                                <p className="font-kanit text-[10px] font-bold text-blue-700 uppercase mb-1">
+                                  No seu nivel ({nivelInfo.nome})
+                                </p>
+                                <p className="font-kanit text-xs text-blenduca-grafite whitespace-pre-line">
+                                  {entregavel.detalhesNivel[nivel]}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Frequencia */}
+                            {entregavel.frequencia && !entregavel.detalhesNivel?.[nivel] && (
+                              <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                                {entregavel.frequencia}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Upgrade Experience Flix */}
       {upgradeOpcao && proximoNivelInfo && (
@@ -239,9 +364,117 @@ export default function CustomizacoesSection() {
         )}
 
         <p className="font-kanit text-[10px] text-blenduca-cinza-medio mt-3">
-          💡 {funisAdicionaisConfig.observacao}
+          {funisAdicionaisConfig.observacao}
         </p>
       </div>
+
+      {/* Co-produtor Section (Business/Scale only) */}
+      {coprodutorDisponivel && (
+        <div className="bg-white border border-gray-100 rounded-xl p-5 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-2xl">🤝</span>
+            <div>
+              <h3 className="font-kanit font-bold text-base text-blenduca-grafite">
+                Co-produtor
+              </h3>
+              <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                Adicione um co-produtor ao projeto (disponivel para {nivel === "business" ? "Business" : "Scale"})
+              </p>
+            </div>
+          </div>
+
+          <label className={`flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+            coprodutor?.ativo
+              ? "border-blenduca-vermelho bg-blenduca-vermelho/5"
+              : "border-gray-100 hover:border-gray-200"
+          }`}>
+            <input
+              type="checkbox"
+              checked={coprodutor?.ativo ?? false}
+              onChange={handleCoprodutorToggle}
+              className="mt-1 w-5 h-5 rounded border-gray-300 text-blenduca-vermelho focus:ring-blenduca-vermelho"
+            />
+            <div className="flex-1">
+              <span className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                Ativar co-produtor
+              </span>
+              <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                Inclua um parceiro de negocio com percentual de comissao
+              </p>
+            </div>
+          </label>
+
+          {/* Co-produtor Form */}
+          {coprodutor?.ativo && (
+            <div className="mt-4 space-y-4 animate-fade-in-up">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-kanit text-xs text-blenduca-cinza-medio mb-1">
+                    Nome do Co-produtor *
+                  </label>
+                  <input
+                    type="text"
+                    value={coprodutor.nome}
+                    onChange={(e) => handleCoprodutorChange("nome", e.target.value)}
+                    placeholder="Nome completo"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg font-kanit text-sm text-blenduca-grafite focus:outline-none focus:ring-2 focus:ring-blenduca-vermelho/20 focus:border-blenduca-vermelho"
+                  />
+                </div>
+                <div>
+                  <label className="block font-kanit text-xs text-blenduca-cinza-medio mb-1">
+                    Email do Co-produtor
+                  </label>
+                  <input
+                    type="email"
+                    value={coprodutor.email}
+                    onChange={(e) => handleCoprodutorChange("email", e.target.value)}
+                    placeholder="email@exemplo.com"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg font-kanit text-sm text-blenduca-grafite focus:outline-none focus:ring-2 focus:ring-blenduca-vermelho/20 focus:border-blenduca-vermelho"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-kanit text-xs text-blenduca-cinza-medio mb-1">
+                  Percentual de Comissao: {coprodutor.percentualComissao}%
+                </label>
+                <input
+                  type="range"
+                  min={1}
+                  max={100}
+                  value={coprodutor.percentualComissao}
+                  onChange={(e) => handleCoprodutorChange("percentualComissao", parseInt(e.target.value))}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blenduca-vermelho"
+                />
+                <div className="flex justify-between font-kanit text-[10px] text-blenduca-cinza-medio mt-1">
+                  <span>1%</span>
+                  <span>50%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-kanit text-xs text-blenduca-cinza-medio mb-1">
+                  Observacoes
+                </label>
+                <textarea
+                  value={coprodutor.observacoes}
+                  onChange={(e) => handleCoprodutorChange("observacoes", e.target.value)}
+                  placeholder="Observacoes sobre a parceria..."
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg font-kanit text-sm text-blenduca-grafite focus:outline-none focus:ring-2 focus:ring-blenduca-vermelho/20 focus:border-blenduca-vermelho resize-none"
+                />
+              </div>
+
+              {coprodutor.nome === "" && (
+                <p className="font-kanit text-xs text-amber-600">
+                  * O nome do co-produtor e obrigatorio
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Continue button */}
       <div className="flex gap-3">

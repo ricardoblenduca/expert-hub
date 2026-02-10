@@ -322,6 +322,18 @@ export interface CondicoesComerciais {
 }
 
 // ============================================
+// CO-PRODUTOR V0.7
+// ============================================
+
+export interface CoProdutorConfig {
+  ativo: boolean;
+  nome: string;
+  email: string;
+  percentualComissao: number; // 1-100%
+  observacoes: string;
+}
+
+// ============================================
 // CARRINHO V5.0
 // ============================================
 
@@ -369,6 +381,9 @@ export interface CarrinhoState {
   // Agentes AI
   agentes: AgenteNoCarrinho[];
 
+  // Co-produtor (Business/Scale only)
+  coprodutor: CoProdutorConfig | null;
+
   // Condições
   condicaoPagamento: CondicaoPagamento;
   revenueShareObservacoes: string;
@@ -402,6 +417,9 @@ export interface ResumoCarrinho {
   subtotalMensal: number;
   totalMensal: number;
   totalAnual: number;
+
+  // Co-produtor
+  coprodutorComissao: number;
 
   // Economia
   economia: number;

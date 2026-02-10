@@ -15,8 +15,8 @@ export const precosMatriz: PrecosMatriz = {
 
   business: {
     completo: { entrada: 4500, mensal: 4500 },
-    consultoria: { entrada: 0, mensal: 2500 },
-    comunidade: { entrada: 0, mensal: 1000 },
+    consultoria: { entrada: 0, mensal: 3000 },
+    comunidade: { entrada: 0, mensal: 1750 },
   },
 
   scale: {

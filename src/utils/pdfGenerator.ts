@@ -25,7 +25,12 @@ export async function generateProposalPDF(proposta: Proposta) {
   let y = 0;
 
   const { carrinho, resumo, cliente, consultor } = proposta;
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes, coprodutor } = carrinho;
+
+  // Helper function to strip emojis for PDF (jsPDF doesn't render emojis well)
+  function stripEmoji(text: string): string {
+    return text.replace(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]/gu, "").trim();
+  }
 
   const modalidadeData = modalidade ? modalidades[modalidade] : null;
   const nivelData = nivel ? niveisMap[nivel] : null;
@@ -366,6 +371,36 @@ export async function generateProposalPDF(proposta: Proposta) {
     });
   }
 
+  // Co-produtor section
+  if (coprodutor?.ativo) {
+    checkPageBreak(25);
+    doc.setFillColor(...COLORS.bgLight);
+    doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
+    doc.setFontSize(10);
+    doc.setTextColor(...COLORS.grafite);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      `${sectionNum}. CO-PRODUTOR`,
+      margin + 3,
+      y + 4
+    );
+    y += 14;
+    sectionNum++;
+
+    bodyText(`Nome: ${coprodutor.nome || "Nao informado"}`, false, 3);
+    if (coprodutor.email) {
+      bodyText(`Email: ${coprodutor.email}`, false, 3);
+    }
+    bodyText(`Percentual de Comissao: ${coprodutor.percentualComissao}%`, false, 3);
+    bodyText(`Comissao Estimada: ${formatCurrency(resumo.coprodutorComissao)}/mes`, true, 3);
+
+    if (coprodutor.observacoes) {
+      y += 2;
+      bodyText(`Observacoes: ${coprodutor.observacoes}`, false, 3);
+    }
+    y += 4;
+  }
+
   // ========= ENTREGAVEIS DO PACOTE =========
   if (nivel) {
     y += 2;
@@ -385,7 +420,7 @@ export async function generateProposalPDF(proposta: Proposta) {
       doc.setFontSize(9);
       doc.setTextColor(...COLORS.grafite);
       doc.setFont("helvetica", "bold");
-      doc.text(`${pilar.icone} ${pilar.nome}`, margin + 3, y + 3);
+      doc.text(`${stripEmoji(pilar.nome)}`, margin + 3, y + 3);
       y += 10;
 
       // Entregaveis
@@ -396,7 +431,7 @@ export async function generateProposalPDF(proposta: Proposta) {
         doc.setFontSize(9);
         doc.setTextColor(...COLORS.grafite);
         doc.setFont("helvetica", "bold");
-        doc.text(`${entregavel.icone} ${entregavel.nome}`, margin + 3, y);
+        doc.text(`${stripEmoji(entregavel.nome)}`, margin + 3, y);
         y += 4;
 
         // Descricao
@@ -469,6 +504,7 @@ export async function generateProposalPDF(proposta: Proposta) {
   if (resumo.totalEntrada > 0 || resumo.totalSetup > 0) boxHeight += 24;
   if (resumo.totalUpgradesMensal > 0) boxHeight += 6;
   if (resumo.agentesMensal > 0) boxHeight += 6;
+  if (resumo.coprodutorComissao > 0) boxHeight += 6;
   if (resumo.economia > 0) boxHeight += 6;
 
   checkPageBreak(boxHeight + 5);
@@ -569,6 +605,19 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
     doc.text(formatCurrency(resumo.agentesMensal), boxRight, y + 4, {
+      align: "right",
+    });
+    y += 6;
+  }
+
+  if (resumo.coprodutorComissao > 0) {
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.cinza);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Comissao Co-produtor (${coprodutor?.percentualComissao}%):`, boxMargin, y + 4);
+    doc.setTextColor(180, 120, 0); // Amber color
+    doc.setFont("helvetica", "bold");
+    doc.text(formatCurrency(resumo.coprodutorComissao), boxRight, y + 4, {
       align: "right",
     });
     y += 6;

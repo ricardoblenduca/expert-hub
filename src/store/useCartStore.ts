@@ -11,6 +11,7 @@ import type {
   ResumoCarrinho,
   CarrinhoState,
   TecnologiaNoCarrinho,
+  CoProdutorConfig,
 } from "@/types";
 import { precosMatriz } from "@/data/precosMatriz";
 import {
@@ -73,6 +74,9 @@ interface StoreState {
   removerAgente: (agenteId: string) => void;
   atualizarAgente: (agenteId: string, config: Partial<AgenteNoCarrinho>) => void;
 
+  // Co-produtor (Business/Scale only)
+  setCoprodutor: (config: CoProdutorConfig | null) => void;
+
   // Condicoes
   setCondicaoPagamento: (condicao: CondicaoPagamento) => void;
   setRevenueShareObservacoes: (obs: string) => void;
@@ -127,6 +131,7 @@ const initialCarrinho: CarrinhoState = {
   upgradeExperienceFlix: null,
   funisExtras: 0,
   agentes: [],
+  coprodutor: null,
   condicaoPagamento: "padrao",
   revenueShareObservacoes: "",
 };
@@ -375,6 +380,15 @@ export const useCartStore = create<StoreState>((set, get) => ({
       },
     })),
 
+  // Co-produtor (Business/Scale only)
+  setCoprodutor: (config) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        coprodutor: config,
+      },
+    })),
+
   // Condicoes
   setCondicaoPagamento: (condicao) =>
     set((state) => ({
@@ -411,6 +425,7 @@ export const useCartStore = create<StoreState>((set, get) => ({
       upgradeExperienceFlix,
       funisExtras,
       agentes,
+      coprodutor,
     } = carrinho;
 
     // Default values
@@ -426,6 +441,7 @@ export const useCartStore = create<StoreState>((set, get) => ({
       totalUpgradesMensal: 0,
       agentesSetup: 0,
       agentesMensal: 0,
+      coprodutorComissao: 0,
       totalSetup: 0,
       totalEntrada: 0,
       subtotalMensal: 0,
@@ -489,6 +505,14 @@ export const useCartStore = create<StoreState>((set, get) => ({
       resumo.totalUpgradesMensal +
       resumo.techAvulsaMensal +
       resumo.agentesMensal;
+
+    // Co-produtor commission (percentage of subtotalMensal)
+    if (coprodutor?.ativo && coprodutor.percentualComissao > 0) {
+      resumo.coprodutorComissao = Math.round(
+        (resumo.subtotalMensal * coprodutor.percentualComissao) / 100
+      );
+    }
+
     resumo.totalMensal = resumo.subtotalMensal;
     resumo.totalAnual = resumo.totalMensal * 12;
 

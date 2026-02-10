@@ -227,21 +227,8 @@ export default function NivelSelector() {
                                     <h5 className="font-kanit font-semibold text-sm text-blenduca-grafite mb-1">
                                       {entregavel.nome}
                                     </h5>
-                                    <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2">
-                                      {entregavel.descricao}
-                                    </p>
 
-                                    {/* Significado */}
-                                    <div className="bg-amber-50/50 border-l-2 border-amber-400 p-2 rounded-r mb-2">
-                                      <p className="font-kanit text-[10px] font-bold text-amber-700 uppercase mb-1">
-                                        O que isso significa para voce
-                                      </p>
-                                      <p className="font-kanit text-xs text-blenduca-grafite">
-                                        {entregavel.significado}
-                                      </p>
-                                    </div>
-
-                                    {/* Detalhes do nivel */}
+                                    {/* Detalhes do nivel - no significado in interface, only in PDF */}
                                     {entregavel.detalhesNivel?.[nivel.id] && (
                                       <div className="bg-blue-50/50 rounded p-2">
                                         <p className="font-kanit text-[10px] font-bold text-blue-700 uppercase mb-1">

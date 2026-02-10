@@ -18,7 +18,7 @@ export default function ProposalPreview() {
   const [generating, setGenerating] = useState(false);
 
   const resumo = calcularResumo();
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes, coprodutor } = carrinho;
 
   const modalidadeData = modalidade ? modalidades[modalidade] : null;
   const nivelData = nivel ? niveisMap[nivel] : null;
@@ -463,6 +463,53 @@ export default function ProposalPreview() {
                 </div>
               </div>
             )}
+
+            {/* Co-produtor */}
+            {coprodutor?.ativo && (
+              <div className="mb-6 border border-gray-100 rounded-lg p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-amber-600 text-white px-2 py-1 rounded">
+                    CO-PRODUTOR
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm font-kanit">
+                    <span className="text-blenduca-cinza-medio">Nome:</span>
+                    <span className="font-medium text-blenduca-grafite">
+                      {coprodutor.nome || "Nao informado"}
+                    </span>
+                  </div>
+                  {coprodutor.email && (
+                    <div className="flex justify-between text-sm font-kanit">
+                      <span className="text-blenduca-cinza-medio">Email:</span>
+                      <span className="font-medium text-blenduca-grafite">
+                        {coprodutor.email}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-kanit">
+                    <span className="text-blenduca-cinza-medio">Percentual de Comissao:</span>
+                    <span className="font-semibold text-blenduca-grafite">
+                      {coprodutor.percentualComissao}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm font-kanit border-t border-gray-200 pt-2 mt-2">
+                    <span className="text-blenduca-cinza-medio">Comissao Estimada:</span>
+                    <span className="font-bold text-amber-600">
+                      {formatCurrency(resumo.coprodutorComissao)}/mes
+                    </span>
+                  </div>
+                  {coprodutor.observacoes && (
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                      <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                        <strong>Observacoes:</strong> {coprodutor.observacoes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Entregaveis Section */}
@@ -626,6 +673,14 @@ export default function ProposalPreview() {
                     <span className="text-blenduca-cinza-medio">Agentes A.I:</span>
                     <span className="font-medium text-blenduca-grafite">
                       {formatCurrency(resumo.agentesMensal)}
+                    </span>
+                  </div>
+                )}
+                {resumo.coprodutorComissao > 0 && (
+                  <div className="flex justify-between text-sm font-kanit">
+                    <span className="text-blenduca-cinza-medio">Comissao Co-produtor ({coprodutor?.percentualComissao}%):</span>
+                    <span className="font-medium text-amber-600">
+                      {formatCurrency(resumo.coprodutorComissao)}
                     </span>
                   </div>
                 )}

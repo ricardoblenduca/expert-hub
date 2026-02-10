@@ -197,18 +197,20 @@ export default function TecnologiaAvulsa() {
         </p>
       </div>
 
-      {/* ENTREGAVEIS TOGGLE BUTTON */}
-      <button
-        onClick={() => setShowEntregaveis(!showEntregaveis)}
-        className="w-full mb-6 py-3 px-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 font-kanit text-sm text-blenduca-grafite"
-      >
-        <span>{showEntregaveis ? "▲" : "📋"}</span>
-        <span>
-          {showEntregaveis
-            ? "Fechar entregaveis"
-            : `Ver todos os ${totalEntregaveis} entregaveis inclusos`}
-        </span>
-      </button>
+      {/* ENTREGAVEIS TOGGLE BUTTON - V0.10: Hide when 0 entregaveis */}
+      {totalEntregaveis > 0 && (
+        <button
+          onClick={() => setShowEntregaveis(!showEntregaveis)}
+          className="w-full mb-6 py-3 px-4 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-center gap-2 font-kanit text-sm text-blenduca-grafite"
+        >
+          <span>{showEntregaveis ? "▲" : "📋"}</span>
+          <span>
+            {showEntregaveis
+              ? "Fechar entregaveis"
+              : `Ver todos os ${totalEntregaveis} entregaveis inclusos`}
+          </span>
+        </button>
+      )}
 
       {/* ENTREGAVEIS SECTION (filtered by modalidade) */}
       {showEntregaveis && (
@@ -293,15 +295,15 @@ export default function TecnologiaAvulsa() {
             const isSelected = selectedFlix === nivelItem.id;
 
             return (
-              <div
+              <label
                 key={nivelItem.id}
                 className={`bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-lg ${
                   isSelected ? "border-blenduca-azul shadow-lg" : "border-gray-100 hover:border-blenduca-azul/50"
                 }`}
-                onClick={() => handleSelectFlix(isSelected ? null : nivelItem.id)}
               >
                 <div className="h-1.5 rounded-t-xl" style={{ backgroundColor: nivelItem.cor }} />
                 <div className="p-4">
+                  {/* V0.10: Checkbox instead of toggle button */}
                   <div className="flex items-center justify-between mb-2">
                     <span
                       className="font-play text-[10px] font-bold tracking-wider px-2 py-1 rounded text-white"
@@ -309,9 +311,12 @@ export default function TecnologiaAvulsa() {
                     >
                       {nivelItem.nome}
                     </span>
-                    {isSelected && (
-                      <span className="text-green-500 text-lg">✓</span>
-                    )}
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleSelectFlix(isSelected ? null : nivelItem.id)}
+                      className="w-5 h-5 rounded border-gray-300 text-blenduca-azul focus:ring-blenduca-azul cursor-pointer"
+                    />
                   </div>
 
                   <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2">
@@ -344,17 +349,17 @@ export default function TecnologiaAvulsa() {
                     </p>
                   </div>
 
-                  <button
-                    className={`w-full mt-3 py-2 rounded-lg font-kanit font-semibold text-sm transition-all ${
+                  <div
+                    className={`w-full mt-3 py-2 rounded-lg font-kanit font-semibold text-sm text-center transition-all ${
                       isSelected
                         ? "bg-blenduca-azul text-white"
-                        : "bg-gray-100 text-blenduca-grafite hover:bg-gray-200"
+                        : "bg-gray-100 text-blenduca-grafite"
                     }`}
                   >
                     {isSelected ? "Selecionado ✓" : "Selecionar"}
-                  </button>
+                  </div>
                 </div>
-              </div>
+              </label>
             );
           })}
         </div>
@@ -459,6 +464,52 @@ export default function TecnologiaAvulsa() {
               </div>
             )}
 
+            {/* V0.10: Upgrade cards for Pacote Completo */}
+            {modalidade === "completo" && flixData.upgrades && Object.keys(flixData.upgrades).length > 0 && (
+              <div className="bg-blue-50/50 border border-blue-200 rounded-lg p-4 mb-4">
+                <p className="font-kanit text-[10px] font-bold text-blue-700 uppercase mb-3">
+                  Upgrades disponiveis
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {Object.entries(flixData.upgrades).map(([key, upgrade]) => {
+                    const nivelUpgrade = niveisMap[upgrade.planoDestino];
+                    return (
+                      <div
+                        key={key}
+                        className="bg-white rounded-lg p-3 border border-blue-100 hover:border-blue-300 transition-all cursor-pointer"
+                        onClick={() => handleSelectFlix(upgrade.planoDestino)}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span
+                            className="font-play text-[9px] font-bold tracking-wider px-2 py-0.5 rounded text-white"
+                            style={{ backgroundColor: nivelUpgrade?.cor || "#666" }}
+                          >
+                            {nivelUpgrade?.nome || upgrade.planoDestino}
+                          </span>
+                          <span className="font-kanit text-xs font-bold text-blue-600">
+                            +{formatCurrency(upgrade.custoAdicional)}/mes
+                          </span>
+                        </div>
+                        <ul className="space-y-1">
+                          {upgrade.diferenciais.slice(0, 3).map((dif, i) => (
+                            <li key={i} className="flex items-start gap-1 font-kanit text-[10px] text-blenduca-cinza-medio">
+                              <span className="text-blue-500 mt-0.5">+</span>
+                              {dif}
+                            </li>
+                          ))}
+                          {upgrade.diferenciais.length > 3 && (
+                            <li className="font-kanit text-[10px] text-blue-500">
+                              +{upgrade.diferenciais.length - 3} mais...
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Investimento */}
             <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100">
               <div>
@@ -500,21 +551,30 @@ export default function TecnologiaAvulsa() {
             const isSelected = selectedFunnelPacote === pacote.id;
 
             return (
-              <div
+              <label
                 key={pacote.id}
                 className={`bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer hover:shadow-lg ${
                   isSelected ? "border-blenduca-vermelho shadow-lg" : "border-gray-100 hover:border-blenduca-vermelho/50"
                 }`}
-                onClick={() => handleSelectFunnelPacote(pacote.id)}
               >
                 <div className="p-4">
+                  {/* V0.10: Checkbox instead of toggle button */}
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-play text-[10px] font-bold tracking-wider px-2 py-1 rounded bg-blenduca-vermelho/10 text-blenduca-vermelho">
                       {pacote.nome}
                     </span>
-                    {isSelected && (
-                      <span className="text-green-500 text-lg">✓</span>
-                    )}
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {
+                        if (isSelected) {
+                          handleRemoveFunnel();
+                        } else {
+                          handleSelectFunnelPacote(pacote.id);
+                        }
+                      }}
+                      className="w-5 h-5 rounded border-gray-300 text-blenduca-vermelho focus:ring-blenduca-vermelho cursor-pointer"
+                    />
                   </div>
 
                   <p className="font-kanit text-sm font-medium text-blenduca-grafite mb-2">
@@ -532,17 +592,17 @@ export default function TecnologiaAvulsa() {
                     </p>
                   </div>
 
-                  <button
-                    className={`w-full mt-3 py-2 rounded-lg font-kanit font-semibold text-sm transition-all ${
+                  <div
+                    className={`w-full mt-3 py-2 rounded-lg font-kanit font-semibold text-sm text-center transition-all ${
                       isSelected
                         ? "bg-blenduca-vermelho text-white"
-                        : "bg-gray-100 text-blenduca-grafite hover:bg-gray-200"
+                        : "bg-gray-100 text-blenduca-grafite"
                     }`}
                   >
                     {isSelected ? "Selecionado ✓" : "Selecionar"}
-                  </button>
+                  </div>
                 </div>
-              </div>
+              </label>
             );
           })}
         </div>
@@ -643,6 +703,53 @@ export default function TecnologiaAvulsa() {
                           </ul>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* V0.10: Upgrade cards for Pacote Completo */}
+                  {modalidade === "completo" && pacote.upgrades && Object.keys(pacote.upgrades).length > 0 && (
+                    <div className="bg-red-50/50 border border-red-200 rounded-lg p-4 mb-4">
+                      <p className="font-kanit text-[10px] font-bold text-red-700 uppercase mb-3">
+                        Upgrades disponiveis
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        {Object.entries(pacote.upgrades).map(([key, upgrade]) => {
+                          const upgradePacote = funnelPagesAvulso.pacotesSugeridos.find((p) => p.id === upgrade.planoDestino);
+                          return (
+                            <div
+                              key={key}
+                              className="bg-white rounded-lg p-3 border border-red-100 hover:border-red-300 transition-all cursor-pointer"
+                              onClick={() => {
+                                if (upgradePacote) {
+                                  handleSelectFunnelPacote(upgradePacote.id);
+                                }
+                              }}
+                            >
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="font-play text-[9px] font-bold tracking-wider px-2 py-0.5 rounded bg-blenduca-vermelho/10 text-blenduca-vermelho">
+                                  {upgradePacote?.nome || key}
+                                </span>
+                                <span className="font-kanit text-xs font-bold text-red-600">
+                                  +{formatCurrency(upgrade.custoAdicional)}/mes
+                                </span>
+                              </div>
+                              <ul className="space-y-1">
+                                {upgrade.diferenciais.slice(0, 3).map((dif, i) => (
+                                  <li key={i} className="flex items-start gap-1 font-kanit text-[10px] text-blenduca-cinza-medio">
+                                    <span className="text-red-500 mt-0.5">+</span>
+                                    {dif}
+                                  </li>
+                                ))}
+                                {upgrade.diferenciais.length > 3 && (
+                                  <li className="font-kanit text-[10px] text-red-500">
+                                    +{upgrade.diferenciais.length - 3} mais...
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 

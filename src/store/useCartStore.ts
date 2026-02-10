@@ -1,12 +1,20 @@
+"use client";
+
 import { create } from "zustand";
 import type {
-  ItemCarrinho,
-  Produto,
-  UpgradePlataforma,
+  ModalidadeId,
+  NivelId,
+  CondicaoPagamento,
+  AgenteNoCarrinho,
+  AgenteAI,
   DadosCliente,
   ResumoCarrinho,
+  CarrinhoState,
 } from "@/types";
-import { calcularResumo } from "@/utils/calculations";
+import { precosMatriz } from "@/data/precosMatriz";
+import { tecnologiaInclusa, upgradeExperienceFlixOpcoes } from "@/data/tecnologiaInclusa";
+
+export type Step = "modalidade" | "nivel" | "customizacoes" | "agentes" | "cliente" | "preview";
 
 interface Toast {
   id: string;
@@ -14,39 +22,62 @@ interface Toast {
   type: "success" | "error" | "warning" | "info";
 }
 
-type AppStep = "catalogo" | "cliente" | "preview";
+interface StoreState {
+  // Navigation
+  step: Step;
+  setStep: (step: Step) => void;
 
-interface CartState {
-  carrinho: ItemCarrinho[];
+  // Carrinho
+  carrinho: CarrinhoState;
+
+  // Modalidade & Nivel
+  setModalidade: (modalidade: ModalidadeId) => void;
+  setNivel: (nivel: NivelId) => void;
+
+  // Upgrades
+  setUpgradeExperienceFlix: (nivel: NivelId | null) => void;
+  setFunisExtras: (quantidade: number) => void;
+
+  // Agentes AI
+  adicionarAgente: (agente: AgenteAI, config?: Partial<AgenteNoCarrinho>) => void;
+  removerAgente: (agenteId: string) => void;
+  atualizarAgente: (agenteId: string, config: Partial<AgenteNoCarrinho>) => void;
+
+  // Condicoes
+  setCondicaoPagamento: (condicao: CondicaoPagamento) => void;
+  setRevenueShareObservacoes: (obs: string) => void;
+
+  // Cliente
   dadosCliente: DadosCliente;
+  setDadosCliente: (dados: DadosCliente) => void;
+
+  // Consultor
   consultor: string;
-  step: AppStep;
-  mobileCartOpen: boolean;
-  toasts: Toast[];
-
-  adicionarProduto: (produto: Produto) => void;
-  adicionarFunnel: (upgrade: UpgradePlataforma, funisExtras: number) => void;
-  adicionarFlix: (upgrade: UpgradePlataforma) => void;
-  removerItem: (itemId: string) => void;
-  atualizarFunisExtras: (itemId: string, funisExtras: number) => void;
-  setDadosCliente: (dados: Partial<DadosCliente>) => void;
   setConsultor: (nome: string) => void;
-  setStep: (step: AppStep) => void;
-  setMobileCartOpen: (open: boolean) => void;
-  limparCarrinho: () => void;
-  getResumo: () => ResumoCarrinho;
 
-  addToast: (message: string, type: Toast["type"]) => void;
+  // Resumo
+  calcularResumo: () => ResumoCarrinho;
+
+  // UI
+  mobileCartOpen: boolean;
+  setMobileCartOpen: (open: boolean) => void;
+
+  // Toast
+  toasts: Toast[];
+  addToast: (message: string, type?: Toast["type"]) => void;
   removeToast: (id: string) => void;
+
+  // Reset
+  resetCarrinho: () => void;
 }
 
-const dadosClienteInicial: DadosCliente = {
+const initialDadosCliente: DadosCliente = {
   nome: "",
   empresa: "",
   email: "",
   telefone: "",
   dataReuniao: "",
-  objetivosPrincipais: [],
+  objetivosPrincipais: ["", "", ""],
   desafiosAtuais: "",
   resultadoEsperado: "",
   faturamentoAtual: "",
@@ -55,164 +86,272 @@ const dadosClienteInicial: DadosCliente = {
   condicoesEspeciais: "",
 };
 
-export const useCartStore = create<CartState>((set, get) => ({
-  carrinho: [],
-  dadosCliente: dadosClienteInicial,
-  consultor: "",
-  step: "catalogo",
-  mobileCartOpen: false,
-  toasts: [],
+const initialCarrinho: CarrinhoState = {
+  modalidade: null,
+  nivel: null,
+  upgradeExperienceFlix: null,
+  funisExtras: 0,
+  agentes: [],
+  condicaoPagamento: "padrao",
+  revenueShareObservacoes: "",
+};
 
-  adicionarProduto: (produto: Produto) => {
+function calcularSetupAgente(agente: AgenteAI, config: Partial<AgenteNoCarrinho>): number {
+  let total = agente.investimento.setup;
+
+  if (agente.id === "mentor_ai" && config.acoesExtras) {
+    total += (agente.investimento.setupAdicionalPorAcao ?? 0) * config.acoesExtras;
+  }
+
+  if (agente.id === "comercial_ai" && config.integracoesExtras) {
+    total += (agente.investimento.setupAdicionalPorIntegracao ?? 0) * config.integracoesExtras;
+  }
+
+  return total;
+}
+
+function calcularMensalAgente(agente: AgenteAI, config: Partial<AgenteNoCarrinho>): number {
+  let total = agente.investimento.mensal;
+
+  if (agente.id === "comercial_ai") {
+    if (config.numerosExtras) {
+      total += (agente.investimento.adicionalPorNumero ?? 0) * config.numerosExtras;
+    }
+    if (config.prospeccaoAtiva) {
+      total += agente.investimento.prospeccaoAtiva ?? 0;
+    }
+  }
+
+  return total;
+}
+
+export const useCartStore = create<StoreState>((set, get) => ({
+  // Navigation
+  step: "modalidade",
+  setStep: (step) => set({ step }),
+
+  // Carrinho
+  carrinho: initialCarrinho,
+
+  // Modalidade
+  setModalidade: (modalidade) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        modalidade,
+        // Reset upgrades when changing modality
+        upgradeExperienceFlix: null,
+        funisExtras: 0,
+      },
+    })),
+
+  // Nivel
+  setNivel: (nivel) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        nivel,
+        // Reset upgrades when changing level
+        upgradeExperienceFlix: null,
+        funisExtras: 0,
+      },
+    })),
+
+  // Upgrade Experience Flix
+  setUpgradeExperienceFlix: (nivel) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        upgradeExperienceFlix: nivel,
+      },
+    })),
+
+  // Funis Extras
+  setFunisExtras: (quantidade) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        funisExtras: Math.max(0, Math.min(20, quantidade)),
+      },
+    })),
+
+  // Agentes AI
+  adicionarAgente: (agente, config = {}) =>
     set((state) => {
-      const novoCarrinho = state.carrinho.filter((i) => i.tipo !== "produto");
-      return {
-        carrinho: [
-          ...novoCarrinho,
-          { tipo: "produto" as const, item: produto, quantidade: 1 },
-        ],
+      // Check if already added
+      if (state.carrinho.agentes.some((a) => a.agente.id === agente.id)) {
+        get().addToast("Este agente ja foi adicionado", "warning");
+        return state;
+      }
+
+      const setupTotal = calcularSetupAgente(agente, config);
+      const mensalTotal = calcularMensalAgente(agente, config);
+
+      const novoAgente: AgenteNoCarrinho = {
+        agente,
+        acoesExtras: config.acoesExtras ?? 0,
+        integracoesExtras: config.integracoesExtras ?? 0,
+        numerosExtras: config.numerosExtras ?? 0,
+        prospeccaoAtiva: config.prospeccaoAtiva ?? false,
+        setupTotal,
+        mensalTotal,
       };
-    });
-    get().addToast(`${produto.categoria} adicionado!`, "success");
-  },
 
-  adicionarFunnel: (upgrade: UpgradePlataforma, funisExtras: number) => {
-    const state = get();
-    const funnelExistente = state.carrinho.find(
-      (i) => i.tipo === "upgrade_funnel"
-    );
-    if (funnelExistente) {
-      get().addToast(
-        "Voce ja tem um plano Funnel Pages. Remova-o antes de adicionar outro.",
-        "warning"
-      );
-      return;
+      get().addToast(`${agente.nome} adicionado!`, "success");
+
+      return {
+        carrinho: {
+          ...state.carrinho,
+          agentes: [...state.carrinho.agentes, novoAgente],
+        },
+      };
+    }),
+
+  removerAgente: (agenteId) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        agentes: state.carrinho.agentes.filter((a) => a.agente.id !== agenteId),
+      },
+    })),
+
+  atualizarAgente: (agenteId, config) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        agentes: state.carrinho.agentes.map((a) => {
+          if (a.agente.id !== agenteId) return a;
+
+          const novoConfig = { ...a, ...config };
+          const setupTotal = calcularSetupAgente(a.agente, novoConfig);
+          const mensalTotal = calcularMensalAgente(a.agente, novoConfig);
+
+          return { ...novoConfig, setupTotal, mensalTotal };
+        }),
+      },
+    })),
+
+  // Condicoes
+  setCondicaoPagamento: (condicao) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        condicaoPagamento: condicao,
+      },
+    })),
+
+  setRevenueShareObservacoes: (obs) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        revenueShareObservacoes: obs,
+      },
+    })),
+
+  // Cliente
+  dadosCliente: initialDadosCliente,
+  setDadosCliente: (dados) => set({ dadosCliente: dados }),
+
+  // Consultor
+  consultor: "Consultor Blenduca",
+  setConsultor: (nome) => set({ consultor: nome }),
+
+  // Resumo
+  calcularResumo: () => {
+    const { carrinho } = get();
+    const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes } = carrinho;
+
+    // Default values
+    const resumo: ResumoCarrinho = {
+      pacoteEntrada: 0,
+      pacoteMensal: 0,
+      tecnologiaInclusa: 0,
+      tecnologiaAvulsoEquivalente: 0,
+      upgradeFlixMensal: 0,
+      funisExtrasMensal: 0,
+      totalUpgradesMensal: 0,
+      agentesSetup: 0,
+      agentesMensal: 0,
+      totalSetup: 0,
+      totalEntrada: 0,
+      subtotalMensal: 0,
+      totalMensal: 0,
+      totalAnual: 0,
+      economia: 0,
+    };
+
+    if (!modalidade || !nivel) return resumo;
+
+    // Pacote base
+    const precos = precosMatriz[nivel][modalidade];
+    resumo.pacoteEntrada = precos.entrada;
+    resumo.pacoteMensal = precos.mensal;
+
+    // Tecnologia inclusa (only for EXPERT)
+    if (modalidade === "expert") {
+      const tech = tecnologiaInclusa[nivel];
+      resumo.tecnologiaInclusa = tech.totalTecnologia.mensal;
+      resumo.tecnologiaAvulsoEquivalente = tech.totalTecnologia.mensal;
     }
 
-    const precoBase = upgrade.preco;
-    const precoPorFunil = upgrade.upgrades?.funisExtras.precoPorUnidade ?? 100;
-    const precoExtras = funisExtras * precoPorFunil;
-    const precoTotal = precoBase + precoExtras;
-
-    set((s) => ({
-      carrinho: [
-        ...s.carrinho,
-        {
-          tipo: "upgrade_funnel" as const,
-          item: upgrade,
-          quantidade: 1,
-          funisExtras,
-          precoBase,
-          precoExtras,
-          precoTotal,
-        },
-      ],
-    }));
-    get().addToast(
-      `Funnel Pages ${upgrade.plano} adicionado!` +
-        (funisExtras > 0 ? ` (+${funisExtras} funis extras)` : ""),
-      "success"
-    );
-  },
-
-  adicionarFlix: (upgrade: UpgradePlataforma) => {
-    const state = get();
-    const flixExistente = state.carrinho.find(
-      (i) => i.tipo === "upgrade_flix"
-    );
-    if (flixExistente) {
-      get().addToast(
-        "Voce ja tem um plano Experience Flix. Remova-o antes de adicionar outro.",
-        "warning"
+    // Upgrade Experience Flix
+    if (modalidade === "expert" && upgradeExperienceFlix) {
+      const upgrade = upgradeExperienceFlixOpcoes.find(
+        (u) => u.de === nivel && u.para === upgradeExperienceFlix
       );
-      return;
+      if (upgrade) {
+        resumo.upgradeFlixMensal = upgrade.diferencaMensal;
+      }
     }
 
-    set((s) => ({
-      carrinho: [
-        ...s.carrinho,
-        {
-          tipo: "upgrade_flix" as const,
-          item: upgrade,
-          quantidade: 1,
-          precoBase: upgrade.preco,
-          precoExtras: 0,
-          precoTotal: upgrade.preco,
-        },
-      ],
-    }));
-    get().addToast(
-      `Experience Flix ${upgrade.plano} adicionado ao pacote!`,
-      "success"
-    );
+    // Funis extras
+    resumo.funisExtrasMensal = funisExtras * 100;
+    resumo.totalUpgradesMensal = resumo.upgradeFlixMensal + resumo.funisExtrasMensal;
+
+    // Agentes AI
+    resumo.agentesSetup = agentes.reduce((sum, a) => sum + a.setupTotal, 0);
+    resumo.agentesMensal = agentes.reduce((sum, a) => sum + a.mensalTotal, 0);
+
+    // Totais
+    resumo.totalSetup = resumo.agentesSetup;
+    resumo.totalEntrada = resumo.pacoteEntrada;
+    resumo.subtotalMensal = resumo.pacoteMensal + resumo.totalUpgradesMensal + resumo.agentesMensal;
+    resumo.totalMensal = resumo.subtotalMensal;
+    resumo.totalAnual = resumo.totalMensal * 12;
+
+    // Economia (tecnologia inclusa no EXPERT)
+    if (modalidade === "expert") {
+      resumo.economia = resumo.tecnologiaInclusa;
+    }
+
+    return resumo;
   },
 
-  removerItem: (itemId: string) => {
-    set((state) => ({
-      carrinho: state.carrinho.filter((i) => i.item.id !== itemId),
-    }));
-  },
+  // UI
+  mobileCartOpen: false,
+  setMobileCartOpen: (open) => set({ mobileCartOpen: open }),
 
-  atualizarFunisExtras: (itemId: string, funisExtras: number) => {
-    if (funisExtras < 0 || funisExtras > 20) return;
-    set((state) => ({
-      carrinho: state.carrinho.map((i) => {
-        if (i.item.id !== itemId || i.tipo !== "upgrade_funnel") return i;
-        const upgrade = i.item as UpgradePlataforma;
-        const precoPorFunil =
-          upgrade.upgrades?.funisExtras.precoPorUnidade ?? 100;
-        const precoBase = upgrade.preco;
-        const precoExtras = funisExtras * precoPorFunil;
-        return {
-          ...i,
-          funisExtras,
-          precoBase,
-          precoExtras,
-          precoTotal: precoBase + precoExtras,
-        };
-      }),
-    }));
-  },
-
-  setDadosCliente: (dados: Partial<DadosCliente>) => {
-    set((state) => ({
-      dadosCliente: { ...state.dadosCliente, ...dados },
-    }));
-  },
-
-  setConsultor: (nome: string) => {
-    set({ consultor: nome });
-  },
-
-  setStep: (step: AppStep) => {
-    set({ step });
-  },
-
-  setMobileCartOpen: (open: boolean) => {
-    set({ mobileCartOpen: open });
-  },
-
-  limparCarrinho: () => {
-    set({ carrinho: [], dadosCliente: dadosClienteInicial });
-  },
-
-  getResumo: () => {
-    return calcularResumo(get().carrinho);
-  },
-
-  addToast: (message: string, type: Toast["type"]) => {
-    const id = `toast_${Date.now()}`;
+  // Toasts
+  toasts: [],
+  addToast: (message, type = "info") => {
+    const id = Math.random().toString(36).substring(7);
     set((state) => ({
       toasts: [...state.toasts, { id, message, type }],
     }));
     setTimeout(() => {
       get().removeToast(id);
-    }, 3000);
+    }, 4000);
   },
-
-  removeToast: (id: string) => {
+  removeToast: (id) =>
     set((state) => ({
       toasts: state.toasts.filter((t) => t.id !== id),
-    }));
-  },
+    })),
+
+  // Reset
+  resetCarrinho: () =>
+    set({
+      step: "modalidade",
+      carrinho: initialCarrinho,
+      dadosCliente: initialDadosCliente,
+    }),
 }));

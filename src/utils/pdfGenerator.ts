@@ -1,11 +1,14 @@
 import jsPDF from "jspdf";
-import type { Proposta, Produto, UpgradePlataforma } from "@/types";
-import { calcularResumo } from "./calculations";
+import type { Proposta, NivelId } from "@/types";
 import { formatCurrency, formatDate } from "./formatting";
+import { modalidades, niveisMap } from "@/data/modalidades";
+import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
 
 const COLORS = {
   grafite: [34, 34, 34] as [number, number, number],
   vermelho: [194, 34, 53] as [number, number, number],
+  verde: [34, 139, 34] as [number, number, number],
+  azul: [17, 63, 75] as [number, number, number],
   cinza: [102, 102, 102] as [number, number, number],
   cinzaClaro: [234, 227, 220] as [number, number, number],
   branco: [255, 255, 255] as [number, number, number],
@@ -20,13 +23,15 @@ export async function generateProposalPDF(proposta: Proposta) {
   const contentWidth = pageWidth - margin * 2;
   let y = 0;
 
-  const resumo = calcularResumo(proposta.itens);
-  const produtoItem = proposta.itens.find((i) => i.tipo === "produto");
-  const funnelItem = proposta.itens.find((i) => i.tipo === "upgrade_funnel");
-  const flixItem = proposta.itens.find((i) => i.tipo === "upgrade_flix");
-  const produto = produtoItem?.item as Produto | undefined;
-  const funnel = funnelItem?.item as UpgradePlataforma | undefined;
-  const flix = flixItem?.item as UpgradePlataforma | undefined;
+  const { carrinho, resumo, cliente, consultor } = proposta;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes } = carrinho;
+
+  const modalidadeData = modalidade ? modalidades[modalidade] : null;
+  const nivelData = nivel ? niveisMap[nivel] : null;
+  const techData = nivel && modalidade === "expert" ? tecnologiaInclusa[nivel as NivelId] : null;
+  const upgradeFlixInfo = upgradeExperienceFlix && nivel
+    ? upgradeExperienceFlixOpcoes.find((u) => u.de === nivel && u.para === upgradeExperienceFlix)
+    : null;
 
   function checkPageBreak(needed: number) {
     if (y + needed > pageHeight - 30) {
@@ -84,10 +89,10 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 5;
   }
 
-  function bulletPoint(text: string, indent = 5) {
+  function bulletPoint(text: string, indent = 5, color = COLORS.vermelho) {
     checkPageBreak(6);
     doc.setFontSize(8.5);
-    doc.setTextColor(...COLORS.vermelho);
+    doc.setTextColor(...color);
     doc.setFont("helvetica", "normal");
     doc.text("\u2022", margin + indent, y);
     doc.setTextColor(...COLORS.grafite);
@@ -97,7 +102,6 @@ export async function generateProposalPDF(proposta: Proposta) {
   }
 
   // ========= HEADER =========
-  // Background bar
   doc.setFillColor(...COLORS.grafite);
   doc.rect(0, 0, pageWidth, 40, "F");
 
@@ -135,7 +139,7 @@ export async function generateProposalPDF(proposta: Proposta) {
     27,
     { align: "right" }
   );
-  doc.text(`Consultor: ${proposta.consultor}`, pageWidth - margin, 32, {
+  doc.text(`Consultor: ${consultor}`, pageWidth - margin, 32, {
     align: "right",
   });
 
@@ -147,21 +151,21 @@ export async function generateProposalPDF(proposta: Proposta) {
 
   // ========= DADOS DO CLIENTE =========
   sectionTitle("DADOS DO CLIENTE");
-  labelValue("Nome:", proposta.cliente.nome);
-  if (proposta.cliente.empresa) {
-    labelValue("Empresa:", proposta.cliente.empresa);
+  labelValue("Nome:", cliente.nome);
+  if (cliente.empresa) {
+    labelValue("Empresa:", cliente.empresa);
   }
-  labelValue("Email:", proposta.cliente.email);
-  labelValue("Telefone:", proposta.cliente.telefone);
-  if (proposta.cliente.faturamentoAtual) {
-    labelValue("Faturamento:", proposta.cliente.faturamentoAtual);
+  labelValue("Email:", cliente.email);
+  labelValue("Telefone:", cliente.telefone);
+  if (cliente.faturamentoAtual) {
+    labelValue("Faturamento:", cliente.faturamentoAtual);
   }
   y += 4;
 
   // ========= CONTEXTO E OBJETIVOS =========
   sectionTitle("CONTEXTO E OBJETIVOS");
-  const reuniaoDate = proposta.cliente.dataReuniao
-    ? formatDate(new Date(proposta.cliente.dataReuniao + "T12:00:00"))
+  const reuniaoDate = cliente.dataReuniao
+    ? formatDate(new Date(cliente.dataReuniao + "T12:00:00"))
     : "---";
   bodyText(
     `Apos nossa sessao estrategica realizada em ${reuniaoDate}, identificamos as seguintes necessidades:`
@@ -169,17 +173,19 @@ export async function generateProposalPDF(proposta: Proposta) {
   y += 3;
 
   bodyText("Objetivos Principais:", true);
-  proposta.cliente.objetivosPrincipais.forEach((obj) => {
-    bulletPoint(obj);
-  });
+  cliente.objetivosPrincipais
+    .filter((obj) => obj.trim() !== "")
+    .forEach((obj) => {
+      bulletPoint(obj);
+    });
   y += 2;
 
   bodyText("Desafios Atuais:", true);
-  bodyText(proposta.cliente.desafiosAtuais, false, 2);
+  bodyText(cliente.desafiosAtuais, false, 2);
   y += 2;
 
   bodyText("Resultado Esperado:", true);
-  bodyText(proposta.cliente.resultadoEsperado, false, 2);
+  bodyText(cliente.resultadoEsperado, false, 2);
   y += 4;
 
   // ========= SOLUCAO PROPOSTA =========
@@ -187,194 +193,176 @@ export async function generateProposalPDF(proposta: Proposta) {
 
   let sectionNum = 1;
 
-  if (produto) {
-    // Product header
-    checkPageBreak(12);
+  // Package - Modalidade + Nivel
+  if (modalidadeData && nivelData) {
+    checkPageBreak(30);
     doc.setFillColor(...COLORS.bgLight);
     doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
     doc.setFontSize(10);
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
     doc.text(
-      `${sectionNum}. PRODUTO PRINCIPAL: ${produto.nome}`,
+      `${sectionNum}. ${modalidadeData.id.toUpperCase()} - ${nivelData.nome}`,
       margin + 3,
       y + 4
     );
     y += 12;
     sectionNum++;
 
-    bodyText(
-      `Investimento: ${formatCurrency(produto.investimento.mensal)}/mes`,
-      false,
-      3
-    );
+    bodyText(modalidadeData.descricao, false, 3);
     y += 2;
 
-    // Deliverables by pillar
-    produto.entregaveis.forEach((pilar) => {
-      checkPageBreak(10);
-      doc.setFontSize(8.5);
-      doc.setTextColor(...COLORS.vermelho);
-      doc.setFont("helvetica", "bold");
-      doc.text(pilar.pilar, margin + 3, y);
-      y += 4;
+    // Pricing
+    if (resumo.pacoteEntrada > 0) {
+      bodyText(`Taxa de Entrada: ${formatCurrency(resumo.pacoteEntrada)}`, false, 3);
+    }
+    bodyText(`Investimento Mensal: ${formatCurrency(resumo.pacoteMensal)}/mes`, true, 3);
+    y += 3;
 
-      pilar.items.forEach((item) => {
-        let desc = item.descricao;
-        if (item.frequencia) desc += ` (${item.frequencia})`;
-        if (item.tipo) desc += ` [${item.tipo}]`;
-        if (item.quantidade) desc += ` - ${item.quantidade}`;
-        bulletPoint(desc, 6);
-      });
-      y += 1;
+    // Features
+    const features = [];
+    if (modalidadeData.incluiConsultoria) features.push("Consultoria Individual");
+    if (modalidadeData.incluiComunidade) features.push("Comunidade Expert Hub");
+    if (modalidadeData.incluiTecnologia) features.push("Tecnologia Inclusa");
+    features.forEach((feat) => {
+      bulletPoint(feat, 6, COLORS.verde);
+    });
+    y += 4;
+  }
+
+  // Technology included (EXPERT only)
+  if (modalidade === "expert" && techData) {
+    checkPageBreak(40);
+    doc.setFillColor(...COLORS.bgLight);
+    doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
+    doc.setFontSize(10);
+    doc.setTextColor(...COLORS.grafite);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      `${sectionNum}. TECNOLOGIA INCLUSA`,
+      margin + 3,
+      y + 4
+    );
+    if (resumo.economia > 0) {
+      doc.setTextColor(...COLORS.verde);
+      doc.setFontSize(8);
+      doc.text(
+        `(Economia de ${formatCurrency(resumo.economia)}/mes)`,
+        margin + 65,
+        y + 4
+      );
+    }
+    y += 14;
+    sectionNum++;
+
+    // Experience Flix
+    bodyText(`Experience Flix - ${techData.experienceFlix.plano}`, true, 3);
+    bodyText(techData.experienceFlix.descricao, false, 6);
+    techData.experienceFlix.recursos.forEach((rec) => {
+      bulletPoint(rec, 6, COLORS.verde);
     });
     y += 3;
-  }
 
-  // Funnel Pages upgrade
-  if (funnel && funnelItem) {
-    checkPageBreak(12);
-    doc.setFillColor(...COLORS.bgLight);
-    doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
-    doc.setFontSize(10);
-    doc.setTextColor(...COLORS.grafite);
-    doc.setFont("helvetica", "bold");
-    doc.text(
-      `${sectionNum}. FUNNEL PAGES - ${funnel.plano}`,
-      margin + 3,
-      y + 4
-    );
-    y += 14;
-    sectionNum++;
-
-    bodyText(funnel.descricao, false, 3);
-    y += 2;
-
-    // Pricing breakdown
-    bodyText("Investimento:", true, 3);
-    bodyText(
-      `Plano Base: ${formatCurrency(funnelItem.precoBase ?? funnel.preco)}/mes`,
-      false,
-      6
-    );
-    if ((funnelItem.funisExtras ?? 0) > 0) {
-      bodyText(
-        `Funis Extras (${funnelItem.funisExtras}x): ${formatCurrency(funnelItem.precoExtras ?? 0)}/mes`,
-        false,
-        6
-      );
-    }
-    bodyText(
-      `Total: ${formatCurrency(funnelItem.precoTotal ?? funnel.preco)}/mes`,
-      true,
-      6
-    );
-    y += 2;
-
-    // Deliverables
-    bodyText("Recursos inclusos:", true, 3);
-    funnel.entregaveisBase.forEach((ent) => {
-      bulletPoint(ent, 6);
+    // Funnel Pages
+    bodyText(`Funnel Pages - ${techData.funnelPages.plano}`, true, 3);
+    bodyText(techData.funnelPages.descricao, false, 6);
+    techData.funnelPages.funis.forEach((funil) => {
+      bulletPoint(funil, 6, COLORS.verde);
     });
+    y += 3;
 
-    // Observations
-    if (funnel.observacoes.length > 0) {
-      y += 2;
-      funnel.observacoes.forEach((obs) => {
-        checkPageBreak(5);
-        doc.setFontSize(7);
-        doc.setTextColor(...COLORS.cinza);
-        doc.setFont("helvetica", "italic");
-        const lines = doc.splitTextToSize(obs, contentWidth - 6);
-        doc.text(lines, margin + 6, y);
-        y += lines.length * 3.5;
+    // Genius AI (Scale only)
+    if (techData.geniusAI) {
+      bodyText(`Genius A.I - ${techData.geniusAI.plano}`, true, 3);
+      bodyText(techData.geniusAI.descricao, false, 6);
+      techData.geniusAI.recursos.forEach((rec) => {
+        bulletPoint(rec, 6, COLORS.azul);
       });
+      y += 3;
     }
-    y += 4;
+    y += 2;
   }
 
-  // Experience Flix upgrade
-  if (flix && flixItem) {
-    checkPageBreak(12);
+  // Upgrades
+  if (resumo.upgradeFlixMensal > 0 || resumo.funisExtrasMensal > 0) {
+    checkPageBreak(20);
     doc.setFillColor(...COLORS.bgLight);
     doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
     doc.setFontSize(10);
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
     doc.text(
-      `${sectionNum}. EXPERIENCE FLIX - ${flix.plano}`,
+      `${sectionNum}. UPGRADES`,
       margin + 3,
       y + 4
     );
     y += 14;
     sectionNum++;
 
-    bodyText(flix.descricao, false, 3);
-    y += 2;
+    if (upgradeFlixInfo) {
+      bodyText("Upgrade Experience Flix", true, 3);
+      bodyText(upgradeFlixInfo.descricao, false, 6);
+      bodyText(`Investimento: +${formatCurrency(resumo.upgradeFlixMensal)}/mes`, false, 6);
+      y += 2;
+    }
 
-    // Price
-    bodyText(
-      `Investimento: ${formatCurrency(flixItem.precoTotal ?? flix.preco)}/mes`,
-      true,
-      3
+    if (funisExtras > 0) {
+      bodyText(`${funisExtras} Funis Adicionais`, true, 3);
+      bodyText(funisAdicionaisConfig.observacao, false, 6);
+      bodyText(`Investimento: +${formatCurrency(resumo.funisExtrasMensal)}/mes`, false, 6);
+      y += 2;
+    }
+    y += 2;
+  }
+
+  // AI Agents
+  if (agentes.length > 0) {
+    checkPageBreak(20);
+    doc.setFillColor(...COLORS.bgLight);
+    doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
+    doc.setFontSize(10);
+    doc.setTextColor(...COLORS.grafite);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      `${sectionNum}. AGENTES A.I`,
+      margin + 3,
+      y + 4
     );
-    y += 2;
+    y += 14;
+    sectionNum++;
 
-    // Plan limits
-    if (flix.limitesPlano) {
-      bodyText("Limites do Plano:", true, 3);
-      bulletPoint(
-        `Areas de Membros: ${flix.limitesPlano.areasMembrosBD}`,
-        6
-      );
-      bulletPoint(
-        `Membros Ativos/mes: ${flix.limitesPlano.membrosAtivosMes}`,
-        6
-      );
-      if (flix.limitesPlano.relatoriosPersonalizadosBD > 0) {
-        bulletPoint(
-          `Relatorios Personalizados: ${flix.limitesPlano.relatoriosPersonalizadosBD}`,
-          6
-        );
+    agentes.forEach((item) => {
+      checkPageBreak(30);
+      bodyText(`${item.agente.nome}`, true, 3);
+      bodyText(item.agente.descricao, false, 6);
+      y += 1;
+
+      // Setup and monthly
+      bodyText(`Setup: ${formatCurrency(item.setupTotal)}`, false, 6);
+
+      // Extras
+      if ((item.acoesExtras ?? 0) > 0) {
+        bodyText(`Acoes Extras: ${item.acoesExtras}x`, false, 6);
       }
-      y += 2;
-    }
+      if ((item.integracoesExtras ?? 0) > 0) {
+        bodyText(`Integracoes Extras: ${item.integracoesExtras}x`, false, 6);
+      }
+      if ((item.numerosExtras ?? 0) > 0) {
+        bodyText(`Numeros Extras: ${item.numerosExtras}x`, false, 6);
+      }
+      if (item.prospeccaoAtiva) {
+        bodyText("Prospeccao Ativa: Incluso", false, 6);
+      }
 
-    // Deliverables
-    bodyText("Recursos inclusos:", true, 3);
-    flix.entregaveisBase.forEach((ent) => {
-      bulletPoint(ent, 6);
+      bodyText(`Mensal: ${formatCurrency(item.mensalTotal)}/mes`, true, 6);
+      y += 2;
+
+      // Deliverables
+      item.agente.entregaveis.forEach((ent) => {
+        bulletPoint(ent, 6);
+      });
+      y += 3;
     });
-
-    // What's not included
-    if (flix.naoInclui && flix.naoInclui.length > 0) {
-      y += 2;
-      bodyText("Nao inclui:", true, 3);
-      flix.naoInclui.forEach((item) => {
-        checkPageBreak(5);
-        doc.setFontSize(8);
-        doc.setTextColor(...COLORS.cinza);
-        doc.setFont("helvetica", "normal");
-        const lines = doc.splitTextToSize(`- ${item}`, contentWidth - 8);
-        doc.text(lines, margin + 6, y);
-        y += lines.length * 4;
-      });
-    }
-
-    // Observations
-    if (flix.observacoes.length > 0) {
-      y += 2;
-      flix.observacoes.forEach((obs) => {
-        checkPageBreak(5);
-        doc.setFontSize(7);
-        doc.setTextColor(...COLORS.cinza);
-        doc.setFont("helvetica", "italic");
-        const lines = doc.splitTextToSize(obs, contentWidth - 6);
-        doc.text(lines, margin + 6, y);
-        y += lines.length * 3.5;
-      });
-    }
-    y += 4;
   }
 
   // ========= INVESTIMENTO =========
@@ -382,12 +370,11 @@ export async function generateProposalPDF(proposta: Proposta) {
   sectionTitle("INVESTIMENTO");
 
   // Calculate dynamic box height
-  let boxHeight = 14; // base for subtotal + total sections
-  if (resumo.totalProduto > 0) boxHeight += 6;
-  if (resumo.totalFunnel > 0) boxHeight += 6;
-  if (resumo.totalFlix > 0) boxHeight += 6;
-  if (resumo.desconto > 0) boxHeight += 6;
-  boxHeight += 18; // total + annual
+  let boxHeight = 20;
+  if (resumo.totalEntrada > 0 || resumo.totalSetup > 0) boxHeight += 24;
+  if (resumo.totalUpgradesMensal > 0) boxHeight += 6;
+  if (resumo.agentesMensal > 0) boxHeight += 6;
+  if (resumo.economia > 0) boxHeight += 6;
 
   checkPageBreak(boxHeight + 5);
   const boxY = y - 2;
@@ -399,67 +386,94 @@ export async function generateProposalPDF(proposta: Proposta) {
   const boxMargin = margin + 5;
   const boxRight = pageWidth - margin - 5;
 
-  if (resumo.totalProduto > 0) {
-    doc.setFontSize(9);
+  // Initial investment
+  if (resumo.totalEntrada > 0 || resumo.totalSetup > 0) {
+    doc.setFontSize(8);
     doc.setTextColor(...COLORS.cinza);
-    doc.setFont("helvetica", "normal");
-    doc.text("Produto Principal:", boxMargin, y + 4);
+    doc.setFont("helvetica", "bold");
+    doc.text("INVESTIMENTO INICIAL", boxMargin, y + 4);
+    y += 7;
+
+    if (resumo.totalEntrada > 0) {
+      doc.setFontSize(9);
+      doc.setTextColor(...COLORS.cinza);
+      doc.setFont("helvetica", "normal");
+      doc.text("Taxa de Entrada:", boxMargin, y + 4);
+      doc.setTextColor(...COLORS.grafite);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatCurrency(resumo.totalEntrada), boxRight, y + 4, {
+        align: "right",
+      });
+      y += 6;
+    }
+
+    if (resumo.agentesSetup > 0) {
+      doc.setFontSize(9);
+      doc.setTextColor(...COLORS.cinza);
+      doc.setFont("helvetica", "normal");
+      doc.text("Setup Agentes A.I:", boxMargin, y + 4);
+      doc.setTextColor(...COLORS.grafite);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatCurrency(resumo.agentesSetup), boxRight, y + 4, {
+        align: "right",
+      });
+      y += 6;
+    }
+
+    // Total initial
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.3);
+    doc.line(boxMargin, y + 2, boxRight, y + 2);
+    y += 5;
+
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(resumo.totalProduto), boxRight, y + 4, {
+    doc.text("Total Inicial:", boxMargin, y + 4);
+    doc.text(formatCurrency(resumo.totalEntrada + resumo.totalSetup), boxRight, y + 4, {
       align: "right",
     });
-    y += 6;
+    y += 8;
   }
 
-  if (resumo.totalFunnel > 0) {
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.cinza);
-    doc.setFont("helvetica", "normal");
-    doc.text("Funnel Pages:", boxMargin, y + 4);
-    doc.setTextColor(...COLORS.grafite);
-    doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(resumo.totalFunnel), boxRight, y + 4, {
-      align: "right",
-    });
-    y += 6;
-  }
+  // Monthly investment
+  doc.setFontSize(8);
+  doc.setTextColor(...COLORS.cinza);
+  doc.setFont("helvetica", "bold");
+  doc.text("INVESTIMENTO MENSAL", boxMargin, y + 4);
+  y += 7;
 
-  if (resumo.totalFlix > 0) {
-    doc.setFontSize(9);
-    doc.setTextColor(...COLORS.cinza);
-    doc.setFont("helvetica", "normal");
-    doc.text("Experience Flix:", boxMargin, y + 4);
-    doc.setTextColor(...COLORS.grafite);
-    doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(resumo.totalFlix), boxRight, y + 4, {
-      align: "right",
-    });
-    y += 6;
-  }
-
-  // Separator
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-  doc.line(boxMargin, y + 2, boxRight, y + 2);
-  y += 5;
-
+  doc.setFontSize(9);
   doc.setTextColor(...COLORS.cinza);
   doc.setFont("helvetica", "normal");
-  doc.text("Subtotal Mensal:", boxMargin, y + 4);
+  doc.text("Pacote Base:", boxMargin, y + 4);
   doc.setTextColor(...COLORS.grafite);
   doc.setFont("helvetica", "bold");
-  doc.text(formatCurrency(resumo.subtotal), boxRight, y + 4, {
+  doc.text(formatCurrency(resumo.pacoteMensal), boxRight, y + 4, {
     align: "right",
   });
   y += 6;
 
-  if (resumo.desconto > 0) {
-    doc.setTextColor(...COLORS.vermelho);
+  if (resumo.totalUpgradesMensal > 0) {
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.cinza);
     doc.setFont("helvetica", "normal");
-    doc.text("Desconto:", boxMargin, y + 4);
+    doc.text("Upgrades:", boxMargin, y + 4);
+    doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
-    doc.text(`- ${formatCurrency(resumo.desconto)}`, boxRight, y + 4, {
+    doc.text(formatCurrency(resumo.totalUpgradesMensal), boxRight, y + 4, {
+      align: "right",
+    });
+    y += 6;
+  }
+
+  if (resumo.agentesMensal > 0) {
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.cinza);
+    doc.setFont("helvetica", "normal");
+    doc.text("Agentes A.I:", boxMargin, y + 4);
+    doc.setTextColor(...COLORS.grafite);
+    doc.setFont("helvetica", "bold");
+    doc.text(formatCurrency(resumo.agentesMensal), boxRight, y + 4, {
       align: "right",
     });
     y += 6;
@@ -477,7 +491,7 @@ export async function generateProposalPDF(proposta: Proposta) {
   doc.text("TOTAL MENSAL:", boxMargin, y + 4);
   doc.setTextColor(...COLORS.vermelho);
   doc.setFontSize(13);
-  doc.text(formatCurrency(resumo.total), boxRight, y + 4, { align: "right" });
+  doc.text(formatCurrency(resumo.totalMensal), boxRight, y + 4, { align: "right" });
   y += 7;
 
   doc.setFontSize(8);
@@ -489,25 +503,33 @@ export async function generateProposalPDF(proposta: Proposta) {
   doc.text(formatCurrency(resumo.totalAnual), boxRight, y + 4, {
     align: "right",
   });
+  y += 6;
+
+  if (resumo.economia > 0) {
+    doc.setTextColor(...COLORS.verde);
+    doc.setFont("helvetica", "normal");
+    doc.text("Economia (Tecnologia Inclusa):", boxMargin, y + 4);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${formatCurrency(resumo.economia)}/mes`, boxRight, y + 4, {
+      align: "right",
+    });
+    y += 6;
+  }
 
   y = boxY + boxHeight + 6;
 
   // ========= CONDICOES COMERCIAIS =========
   sectionTitle("CONDICOES COMERCIAIS");
 
-  if (produto) {
-    bulletPoint(`Duracao: ${produto.duracao}`);
-    bulletPoint(`Periodo Minimo: ${produto.investimento.minimoMeses} meses`);
-  }
-  if (funnel) {
-    bulletPoint(`Funnel Pages: Contrato de ${funnel.duracaoMinima} meses`);
-  }
-  if (flix) {
-    bulletPoint(`Experience Flix: Contrato de ${flix.duracaoMinima} meses`);
-  }
+  bulletPoint("Duracao: Contrato de 12 meses");
+  bulletPoint("Periodo Minimo: 3 meses");
   bulletPoint("Aviso Previo: 30 dias");
-  if (produto?.investimento.extras) {
-    bulletPoint(`Extras: ${produto.investimento.extras}`);
+  if (carrinho.condicaoPagamento === "revenue_share") {
+    let revenueText = "Condicao Especial: Revenue Share";
+    if (carrinho.revenueShareObservacoes) {
+      revenueText += ` - ${carrinho.revenueShareObservacoes}`;
+    }
+    bulletPoint(revenueText);
   }
   y += 4;
 
@@ -536,6 +558,6 @@ export async function generateProposalPDF(proposta: Proposta) {
   addFooter();
 
   // Save
-  const fileName = `Proposta_${proposta.cliente.nome.replace(/\s+/g, "_")}_${formatDate(proposta.data).replace(/\//g, "-")}.pdf`;
+  const fileName = `Proposta_${cliente.nome.replace(/\s+/g, "_")}_${formatDate(proposta.data).replace(/\//g, "-")}.pdf`;
   doc.save(fileName);
 }

@@ -1,30 +1,28 @@
 "use client";
 
 import { useCartStore } from "@/store/useCartStore";
-import { calcularResumo } from "@/utils/calculations";
+import { modalidades, niveisMap } from "@/data/modalidades";
+import { tecnologiaInclusa } from "@/data/tecnologiaInclusa";
 import { formatCurrency } from "@/utils/formatting";
-import CartItem from "./CartItem";
 
 export default function CartSidebar() {
   const carrinho = useCartStore((s) => s.carrinho);
-  const step = useCartStore((s) => s.step);
+  const calcularResumo = useCartStore((s) => s.calcularResumo);
   const setStep = useCartStore((s) => s.setStep);
   const mobileCartOpen = useCartStore((s) => s.mobileCartOpen);
   const setMobileCartOpen = useCartStore((s) => s.setMobileCartOpen);
   const addToast = useCartStore((s) => s.addToast);
 
-  const resumo = calcularResumo(carrinho);
-  const produtoItem = carrinho.find((i) => i.tipo === "produto");
-  const funnelItem = carrinho.find((i) => i.tipo === "upgrade_funnel");
-  const flixItem = carrinho.find((i) => i.tipo === "upgrade_flix");
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes } = carrinho;
+  const resumo = calcularResumo();
+
+  const modalidadeInfo = modalidade ? modalidades[modalidade] : null;
+  const nivelInfo = nivel ? niveisMap[nivel] : null;
+  const tech = modalidade === "expert" && nivel ? tecnologiaInclusa[nivel] : null;
 
   const handleFinalize = () => {
-    if (carrinho.length === 0) {
-      addToast("Adicione ao menos um produto ao carrinho", "warning");
-      return;
-    }
-    if (!produtoItem) {
-      addToast("Selecione um produto principal", "warning");
+    if (!modalidade || !nivel) {
+      addToast("Selecione uma modalidade e nivel", "warning");
       return;
     }
     setStep("cliente");
@@ -37,12 +35,7 @@ export default function CartSidebar() {
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <h2 className="font-kanit font-bold text-lg text-blenduca-grafite">
-            Carrinho
-            {carrinho.length > 0 && (
-              <span className="ml-2 bg-blenduca-vermelho text-white text-xs font-bold rounded-full px-2 py-0.5">
-                {carrinho.length}
-              </span>
-            )}
+            Resumo da Proposta
           </h2>
           <button
             className="lg:hidden p-1 hover:bg-gray-100 rounded-md transition-colors"
@@ -56,9 +49,9 @@ export default function CartSidebar() {
         </div>
       </div>
 
-      {/* Items */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {carrinho.length === 0 ? (
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {!modalidade || !nivel ? (
           <div className="text-center py-12">
             <svg
               className="w-12 h-12 mx-auto text-gray-300 mb-3"
@@ -74,87 +67,167 @@ export default function CartSidebar() {
               />
             </svg>
             <p className="font-kanit text-sm text-blenduca-cinza-medio">
-              Seu carrinho esta vazio
+              Selecione uma modalidade
             </p>
             <p className="font-kanit text-xs text-gray-400 mt-1">
-              Selecione um produto principal para comecar
+              para visualizar o resumo
             </p>
           </div>
         ) : (
           <>
-            {/* Main product */}
-            {produtoItem && (
+            {/* Pacote Base */}
+            <div className="bg-gray-50/50 rounded-lg p-4">
+              <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-blenduca-cinza-medio mb-3">
+                PACOTE BASE
+              </h3>
+
+              <div className="flex items-start gap-3">
+                <div
+                  className="w-2 h-2 rounded-full mt-1.5 shrink-0"
+                  style={{ backgroundColor: modalidadeInfo?.cor }}
+                />
+                <div className="flex-1">
+                  <p className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                    {modalidadeInfo?.nome.split(" - ")[0]} - {nivelInfo?.nome}
+                  </p>
+                  <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                    {modalidadeInfo?.descricao}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-gray-100 space-y-1">
+                {resumo.pacoteEntrada > 0 && (
+                  <div className="flex justify-between text-xs font-kanit">
+                    <span className="text-blenduca-cinza-medio">Entrada:</span>
+                    <span className="font-medium text-blenduca-grafite">
+                      {formatCurrency(resumo.pacoteEntrada)}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between text-sm font-kanit">
+                  <span className="text-blenduca-cinza-medio">Mensal:</span>
+                  <span className="font-semibold text-blenduca-grafite">
+                    {formatCurrency(resumo.pacoteMensal)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tecnologia Inclusa (EXPERT only) */}
+            {tech && (
+              <div className="bg-green-50/50 border border-green-100 rounded-lg p-4">
+                <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-green-700 mb-3">
+                  💻 TECNOLOGIA INCLUSA
+                </h3>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs font-kanit">
+                    <span className="text-blenduca-grafite">
+                      🎬 Experience Flix {tech.experienceFlix.plano}
+                    </span>
+                    <span className="text-green-600">Incluso</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs font-kanit">
+                    <span className="text-blenduca-grafite">
+                      📄 Funnel Pages ({tech.funnelPages.quantidade.funis} funis)
+                    </span>
+                    <span className="text-green-600">Incluso</span>
+                  </div>
+                </div>
+
+                <div className="mt-2 pt-2 border-t border-green-100">
+                  <p className="font-kanit text-[10px] text-green-600">
+                    Valor avulso: {formatCurrency(tech.totalTecnologia.mensal)}/mes
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Upgrades */}
+            {(upgradeExperienceFlix || funisExtras > 0) && (
               <div>
                 <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-blenduca-cinza-medio mb-2">
-                  PRODUTO PRINCIPAL
+                  UPGRADES
                 </h3>
-                <CartItem item={produtoItem} />
+
+                <div className="space-y-2">
+                  {upgradeExperienceFlix && (
+                    <div className="flex justify-between text-xs font-kanit">
+                      <span className="text-blenduca-grafite">
+                        Upgrade Flix → {niveisMap[upgradeExperienceFlix]?.nome}
+                      </span>
+                      <span className="font-medium text-blenduca-vermelho">
+                        +{formatCurrency(resumo.upgradeFlixMensal)}/mes
+                      </span>
+                    </div>
+                  )}
+                  {funisExtras > 0 && (
+                    <div className="flex justify-between text-xs font-kanit">
+                      <span className="text-blenduca-grafite">
+                        {funisExtras}x Funis Extras
+                      </span>
+                      <span className="font-medium text-blenduca-vermelho">
+                        +{formatCurrency(resumo.funisExtrasMensal)}/mes
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Funnel Pages upgrade */}
-            {funnelItem && (
+            {/* Agentes AI */}
+            {agentes.length > 0 && (
               <div>
-                <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-blenduca-cinza-medio mb-2 mt-4">
-                  FUNNEL PAGES
+                <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-blenduca-cinza-medio mb-2">
+                  AGENTES A.I
                 </h3>
-                <CartItem item={funnelItem} />
-              </div>
-            )}
 
-            {/* Experience Flix upgrade */}
-            {flixItem && (
-              <div>
-                <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-blenduca-cinza-medio mb-2 mt-4">
-                  EXPERIENCE FLIX
-                </h3>
-                <CartItem item={flixItem} />
+                <div className="space-y-2">
+                  {agentes.map((a) => (
+                    <div key={a.agente.id} className="bg-gray-50 rounded-lg p-3">
+                      <p className="font-kanit font-medium text-xs text-blenduca-grafite mb-1">
+                        {a.agente.icone} {a.agente.nome}
+                      </p>
+                      <div className="flex justify-between text-[11px] font-kanit">
+                        <span className="text-blenduca-cinza-medio">Setup:</span>
+                        <span className="text-blenduca-grafite">{formatCurrency(a.setupTotal)}</span>
+                      </div>
+                      <div className="flex justify-between text-[11px] font-kanit">
+                        <span className="text-blenduca-cinza-medio">Mensal:</span>
+                        <span className="text-blenduca-grafite">{formatCurrency(a.mensalTotal)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </>
         )}
       </div>
 
-      {/* Summary */}
-      {carrinho.length > 0 && (
+      {/* Summary Footer */}
+      {modalidade && nivel && (
         <div className="border-t border-gray-100 p-4 space-y-3 bg-gray-50/50">
-          {/* Subtotals */}
+          {/* Breakdown */}
           <div className="space-y-1.5">
-            {resumo.totalProduto > 0 && (
-              <div className="flex justify-between text-sm font-kanit">
-                <span className="text-blenduca-cinza-medio">Produto Principal:</span>
+            {resumo.totalSetup > 0 && (
+              <div className="flex justify-between text-xs font-kanit">
+                <span className="text-blenduca-cinza-medio">Setup (unica vez):</span>
                 <span className="font-medium text-blenduca-grafite">
-                  {formatCurrency(resumo.totalProduto)}
+                  {formatCurrency(resumo.totalSetup)}
                 </span>
               </div>
             )}
-            {resumo.totalFunnel > 0 && (
-              <div className="flex justify-between text-sm font-kanit">
-                <span className="text-blenduca-cinza-medio">Funnel Pages:</span>
+            {resumo.totalEntrada > 0 && (
+              <div className="flex justify-between text-xs font-kanit">
+                <span className="text-blenduca-cinza-medio">Entrada:</span>
                 <span className="font-medium text-blenduca-grafite">
-                  {formatCurrency(resumo.totalFunnel)}
-                </span>
-              </div>
-            )}
-            {resumo.totalFlix > 0 && (
-              <div className="flex justify-between text-sm font-kanit">
-                <span className="text-blenduca-cinza-medio">Experience Flix:</span>
-                <span className="font-medium text-blenduca-grafite">
-                  {formatCurrency(resumo.totalFlix)}
+                  {formatCurrency(resumo.totalEntrada)}
                 </span>
               </div>
             )}
           </div>
-
-          {/* Discount */}
-          {resumo.desconto > 0 && (
-            <div className="flex justify-between text-sm font-kanit border-t border-dashed border-gray-200 pt-2">
-              <span className="text-blenduca-vermelho">Desconto:</span>
-              <span className="font-medium text-blenduca-vermelho">
-                - {formatCurrency(resumo.desconto)}
-              </span>
-            </div>
-          )}
 
           {/* Total */}
           <div className="border-t-2 border-blenduca-grafite pt-3">
@@ -163,7 +236,7 @@ export default function CartSidebar() {
                 TOTAL MENSAL
               </span>
               <span className="font-kanit font-bold text-2xl text-blenduca-vermelho animate-count-up">
-                {formatCurrency(resumo.total)}
+                {formatCurrency(resumo.totalMensal)}
               </span>
             </div>
             <div className="flex justify-between text-xs font-kanit text-blenduca-cinza-medio mt-1">
@@ -172,10 +245,22 @@ export default function CartSidebar() {
             </div>
           </div>
 
+          {/* Economia */}
+          {resumo.economia > 0 && (
+            <div className="bg-green-50 rounded-lg p-3 text-center">
+              <p className="font-kanit text-xs text-green-700">
+                💰 Economia em tecnologia inclusa:
+              </p>
+              <p className="font-kanit font-bold text-sm text-green-600">
+                {formatCurrency(resumo.economia)}/mes
+              </p>
+            </div>
+          )}
+
           {/* CTA */}
           <button
             onClick={handleFinalize}
-            disabled={carrinho.length === 0}
+            disabled={!modalidade || !nivel}
             className="w-full py-3 bg-blenduca-vermelho text-white rounded-lg font-kanit font-semibold text-sm transition-all duration-300 hover:bg-blenduca-vermelho-dark shadow-lg shadow-blenduca-vermelho/20 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             Finalizar Proposta

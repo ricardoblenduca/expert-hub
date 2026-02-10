@@ -1,9 +1,165 @@
-export interface Investimento {
-  mensal: number;
-  minimoMeses: number;
-  setup?: number;
-  extras?: string;
+// ============================================
+// MODALIDADES
+// ============================================
+
+export type ModalidadeId = "expert" | "exper" | "xper";
+
+export interface Modalidade {
+  id: ModalidadeId;
+  nome: string;
+  descricao: string;
+  icone: string;
+  incluiConsultoria: boolean;
+  incluiComunidade: boolean;
+  incluiTecnologia: boolean;
+  cor: string;
+  observacao?: string;
 }
+
+// ============================================
+// NIVEIS
+// ============================================
+
+export type NivelId = "starter" | "professional" | "business" | "scale";
+
+export interface NivelConfig {
+  id: NivelId;
+  nome: string;
+  faturamento: string;
+  persona: string;
+  cor: string;
+}
+
+// ============================================
+// MATRIZ DE PRECOS
+// ============================================
+
+export interface PrecoNivel {
+  entrada: number;
+  mensal: number;
+}
+
+export interface PrecosModalidade {
+  expert: PrecoNivel;
+  exper: PrecoNivel;
+  xper: PrecoNivel;
+}
+
+export type PrecosMatriz = Record<NivelId, PrecosModalidade>;
+
+// ============================================
+// TECNOLOGIA INCLUSA (EXPERT)
+// ============================================
+
+export interface LimitesPlataforma {
+  areas: number | "Ilimitado";
+  usuariosAtivos: number | "Ilimitado";
+  custoExcedente: number;
+}
+
+export interface ValorAvulso {
+  entrada?: number;
+  mensal: number;
+  anuidade: number;
+}
+
+export interface ExperienceFlixConfig {
+  plano: string;
+  descricao: string;
+  recursos: string[];
+  limites: LimitesPlataforma;
+  valorAvulso: ValorAvulso;
+}
+
+export interface FunnelPagesConfig {
+  plano: string;
+  descricao: string;
+  funis: string[];
+  automacao: string[];
+  quantidade: {
+    paginaLinks: number;
+    funis: number;
+  };
+  valorAvulso: ValorAvulso;
+}
+
+export interface GeniusAIConfig {
+  plano: string;
+  descricao: string;
+  recursos: string[];
+  valorEstimado: {
+    mensal: number;
+    anuidade: number;
+  };
+}
+
+export interface TecnologiaNivel {
+  experienceFlix: ExperienceFlixConfig;
+  funnelPages: FunnelPagesConfig;
+  geniusAI?: GeniusAIConfig;
+  totalTecnologia: {
+    mensal: number;
+    anuidade: number;
+  };
+}
+
+export type TecnologiaInclusa = Record<NivelId, TecnologiaNivel>;
+
+// ============================================
+// UPGRADES DE TECNOLOGIA
+// ============================================
+
+export interface UpgradeOpcao {
+  de: NivelId;
+  para: NivelId;
+  diferencaMensal: number;
+  descricao: string;
+}
+
+export interface UpgradeTecnologia {
+  id: string;
+  nome: string;
+  descricao: string;
+  opcoes: UpgradeOpcao[];
+}
+
+export interface FunisAdicionaisConfig {
+  id: string;
+  nome: string;
+  descricao: string;
+  precoPorFunil: number;
+  minimo: number;
+  maximo: number;
+  observacao: string;
+}
+
+// ============================================
+// PRODUTOS AVULSOS (AGENTES AI)
+// ============================================
+
+export interface InvestimentoAgente {
+  setup: number;
+  setupAdicionalPorAcao?: number;
+  setupAdicionalPorIntegracao?: number;
+  mensal: number;
+  adicionalPorNumero?: number;
+  prospeccaoAtiva?: number;
+}
+
+export interface AgenteAI {
+  id: string;
+  categoria: string;
+  nome: string;
+  descricao: string;
+  entregaveis: string[];
+  investimento: InvestimentoAgente;
+  icone: string;
+  cor: string;
+}
+
+// ============================================
+// ENTREGAVEIS DO PACOTE BASE
+// ============================================
 
 export interface Entregavel {
   categoria: string;
@@ -15,78 +171,86 @@ export interface Entregavel {
   canal?: string;
   quantidade?: string;
   acesso?: boolean;
+  icone?: string;
 }
 
 export interface Pilar {
   pilar: string;
+  icone?: string;
   items: Entregavel[];
 }
 
-export interface Produto {
-  id: string;
-  nome: string;
-  categoria: string;
-  tagline: string;
-  cor: string;
-  persona: string;
-  faturamento: string;
+// ============================================
+// CONDICOES COMERCIAIS
+// ============================================
+
+export type CondicaoPagamento = "padrao" | "revenue_share";
+
+export interface CondicoesComerciais {
   duracao: string;
-  investimento: Investimento;
-  entregaveis: Pilar[];
-  composicaoPreco: Record<string, number>;
+  minimoMeses: number;
+  avisoPrevia: number;
+  multaRescisoria: string;
+  formaPagamento: string;
+  revenueShare?: string;
 }
 
-export interface LimitesPlano {
-  areasMembrosBD: number;
-  relatoriosPersonalizadosBD: number;
-  membrosAtivosMes: string;
-  custoExcedenteMembrosAtivos: number;
-  areasMembrosMensal: number;
-  relatorioPersonalizadoBDMensal: number;
-  iaNovaAreaMembrosMensal: number;
+// ============================================
+// CARRINHO E PROPOSTA
+// ============================================
+
+export interface AgenteNoCarrinho {
+  agente: AgenteAI;
+  acoesExtras?: number;
+  integracoesExtras?: number;
+  numerosExtras?: number;
+  prospeccaoAtiva?: boolean;
+  setupTotal: number;
+  mensalTotal: number;
 }
 
-export interface FunisExtrasConfig {
-  disponivel: boolean;
-  descricao: string;
-  precoPorUnidade: number;
-  tipoCobranca: string;
-  minimo: number;
-  maximo: number;
-  tipos: string[];
+export interface CarrinhoState {
+  modalidade: ModalidadeId | null;
+  nivel: NivelId | null;
+  upgradeExperienceFlix: NivelId | null;
+  funisExtras: number;
+  agentes: AgenteNoCarrinho[];
+  condicaoPagamento: CondicaoPagamento;
+  revenueShareObservacoes: string;
 }
 
-export interface UpgradePlataforma {
-  id: string;
-  categoria: string;
-  tipo: "funnel_pages" | "experience_flix";
-  nome: string;
-  descricao: string;
-  plano: string;
-  preco: number;
-  tipoCobranca: string;
-  duracaoMinima: number;
-  cor: string;
-  entregaveisBase: string[];
-  diferenciais?: string[];
-  naoInclui?: string[];
-  observacoes: string[];
-  upgrades?: {
-    funisExtras: FunisExtrasConfig;
-  };
-  limitesPlano?: LimitesPlano;
+export interface ResumoCarrinho {
+  // Pacote base
+  pacoteEntrada: number;
+  pacoteMensal: number;
+
+  // Tecnologia inclusa (EXPERT)
+  tecnologiaInclusa: number;
+  tecnologiaAvulsoEquivalente: number;
+
+  // Upgrades
+  upgradeFlixMensal: number;
+  funisExtrasMensal: number;
+  totalUpgradesMensal: number;
+
+  // Agentes AI
+  agentesSetup: number;
+  agentesMensal: number;
+
+  // Totais
+  totalSetup: number;
+  totalEntrada: number;
+  subtotalMensal: number;
+  totalMensal: number;
+  totalAnual: number;
+
+  // Economia
+  economia: number;
 }
 
-export interface ItemCarrinho {
-  tipo: "produto" | "upgrade_funnel" | "upgrade_flix";
-  item: Produto | UpgradePlataforma;
-  quantidade: number;
-  funisExtras?: number;
-  precoBase?: number;
-  precoExtras?: number;
-  precoTotal?: number;
-  notas?: string;
-}
+// ============================================
+// DADOS DO CLIENTE
+// ============================================
 
 export interface DadosCliente {
   nome: string;
@@ -103,25 +267,26 @@ export interface DadosCliente {
   condicoesEspeciais: string;
 }
 
+// ============================================
+// PROPOSTA COMERCIAL
+// ============================================
+
 export interface Proposta {
   id: string;
   data: Date;
   validade: Date;
   cliente: DadosCliente;
-  itens: ItemCarrinho[];
-  subtotal: number;
-  desconto: number;
-  total: number;
+  carrinho: CarrinhoState;
+  resumo: ResumoCarrinho;
   consultor: string;
 }
 
-export interface ResumoCarrinho {
-  totalProduto: number;
-  totalFunnel: number;
-  totalFlix: number;
-  totalUpgrades: number;
-  subtotal: number;
-  desconto: number;
-  total: number;
-  totalAnual: number;
+// ============================================
+// ENTREGAVEIS POR MODALIDADE/NIVEL
+// ============================================
+
+export interface EntregaveisConfig {
+  modalidade: ModalidadeId;
+  nivel: NivelId;
+  pilares: Pilar[];
 }

@@ -2,25 +2,26 @@
 
 import { useState, useCallback } from "react";
 import { useCartStore } from "@/store/useCartStore";
-import { calcularResumo } from "@/utils/calculations";
 import { formatCurrency, formatDate, generateId } from "@/utils/formatting";
-import type { Produto, UpgradePlataforma, Proposta } from "@/types";
+import { modalidades, niveisMap } from "@/data/modalidades";
+import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
+import type { Proposta } from "@/types";
 
 export default function ProposalPreview() {
   const carrinho = useCartStore((s) => s.carrinho);
   const dadosCliente = useCartStore((s) => s.dadosCliente);
   const consultor = useCartStore((s) => s.consultor);
+  const calcularResumo = useCartStore((s) => s.calcularResumo);
   const setStep = useCartStore((s) => s.setStep);
   const addToast = useCartStore((s) => s.addToast);
   const [generating, setGenerating] = useState(false);
 
-  const resumo = calcularResumo(carrinho);
-  const produtoItem = carrinho.find((i) => i.tipo === "produto");
-  const funnelItem = carrinho.find((i) => i.tipo === "upgrade_funnel");
-  const flixItem = carrinho.find((i) => i.tipo === "upgrade_flix");
-  const produto = produtoItem?.item as Produto | undefined;
-  const funnel = funnelItem?.item as UpgradePlataforma | undefined;
-  const flix = flixItem?.item as UpgradePlataforma | undefined;
+  const resumo = calcularResumo();
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes } = carrinho;
+
+  const modalidadeData = modalidade ? modalidades[modalidade] : null;
+  const nivelData = nivel ? niveisMap[nivel] : null;
+  const techData = nivel && modalidade === "expert" ? tecnologiaInclusa[nivel] : null;
 
   const hoje = new Date();
   const validade = new Date(hoje);
@@ -31,10 +32,8 @@ export default function ProposalPreview() {
     data: hoje,
     validade,
     cliente: dadosCliente,
-    itens: carrinho,
-    subtotal: resumo.subtotal,
-    desconto: resumo.desconto,
-    total: resumo.total,
+    carrinho,
+    resumo,
     consultor,
   };
 
@@ -53,7 +52,7 @@ export default function ProposalPreview() {
         id: proposta.id,
         clienteNome: proposta.cliente.nome,
         data: proposta.data.toISOString(),
-        total: proposta.total,
+        total: proposta.resumo.totalMensal,
         status: "enviada",
       });
       localStorage.setItem("propostas_historico", JSON.stringify(historico));
@@ -64,6 +63,11 @@ export default function ProposalPreview() {
       setGenerating(false);
     }
   }, [proposta, addToast]);
+
+  // Get upgrade description if exists
+  const upgradeFlixInfo = upgradeExperienceFlix && nivel
+    ? upgradeExperienceFlixOpcoes.find((u) => u.de === nivel && u.para === upgradeExperienceFlix)
+    : null;
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-in-up">
@@ -147,15 +151,17 @@ export default function ProposalPreview() {
                   Objetivos Principais:
                 </h4>
                 <ul className="space-y-1">
-                  {dadosCliente.objetivosPrincipais.map((obj, i) => (
-                    <li
-                      key={i}
-                      className="flex items-center gap-2 text-sm font-kanit text-blenduca-cinza-medio"
-                    >
-                      <span className="w-1.5 h-1.5 bg-blenduca-vermelho rounded-full shrink-0" />
-                      {obj}
-                    </li>
-                  ))}
+                  {dadosCliente.objetivosPrincipais
+                    .filter((obj) => obj.trim() !== "")
+                    .map((obj, i) => (
+                      <li
+                        key={i}
+                        className="flex items-center gap-2 text-sm font-kanit text-blenduca-cinza-medio"
+                      >
+                        <span className="w-1.5 h-1.5 bg-blenduca-vermelho rounded-full shrink-0" />
+                        {obj}
+                      </li>
+                    ))}
                 </ul>
               </div>
 
@@ -183,188 +189,277 @@ export default function ProposalPreview() {
           <section>
             <SectionTitle>Solucao Proposta</SectionTitle>
 
-            {/* Main product */}
-            {produto && (
+            {/* Package - Modalidade + Nivel */}
+            {modalidadeData && nivelData && (
               <div className="mb-6 bg-blenduca-cinza/30 rounded-lg p-5">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blenduca-vermelho text-white px-2 py-1 rounded">
-                    PRODUTO PRINCIPAL
+                  <span
+                    className="font-play text-[10px] font-bold tracking-wider uppercase text-white px-2 py-1 rounded"
+                    style={{ backgroundColor: modalidadeData.cor }}
+                  >
+                    {modalidadeData.id.toUpperCase()}
+                  </span>
+                  <span
+                    className="font-play text-[10px] font-bold tracking-wider uppercase text-white px-2 py-1 rounded"
+                    style={{ backgroundColor: nivelData.cor }}
+                  >
+                    {nivelData.nome}
                   </span>
                 </div>
                 <h3 className="font-kanit font-bold text-lg text-blenduca-grafite mb-1">
-                  {produto.nome}
+                  {modalidadeData.nome}
                 </h3>
                 <p className="font-kanit text-sm text-blenduca-cinza-medio mb-4">
-                  Investimento: {formatCurrency(produto.investimento.mensal)}/mes
+                  {modalidadeData.descricao}
                 </p>
 
-                {/* Deliverables by pillar */}
+                {/* Pricing */}
+                <div className="bg-white rounded-lg p-4 border border-gray-100">
+                  {resumo.pacoteEntrada > 0 && (
+                    <div className="flex justify-between text-sm font-kanit mb-2">
+                      <span className="text-blenduca-cinza-medio">Taxa de Entrada:</span>
+                      <span className="font-semibold text-blenduca-grafite">
+                        {formatCurrency(resumo.pacoteEntrada)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-kanit">
+                    <span className="text-blenduca-cinza-medio">Investimento Mensal:</span>
+                    <span className="font-semibold text-blenduca-grafite">
+                      {formatCurrency(resumo.pacoteMensal)}/mes
+                    </span>
+                  </div>
+                </div>
+
+                {/* Features */}
+                <div className="mt-4 grid grid-cols-3 gap-2">
+                  <FeatureTag
+                    label="Consultoria"
+                    included={modalidadeData.incluiConsultoria}
+                  />
+                  <FeatureTag
+                    label="Comunidade"
+                    included={modalidadeData.incluiComunidade}
+                  />
+                  <FeatureTag
+                    label="Tecnologia"
+                    included={modalidadeData.incluiTecnologia}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Technology included (EXPERT only) */}
+            {modalidade === "expert" && techData && (
+              <div className="mb-6 border border-gray-100 rounded-lg p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blenduca-verde text-white px-2 py-1 rounded">
+                    TECNOLOGIA INCLUSA
+                  </span>
+                  {resumo.economia > 0 && (
+                    <span className="font-kanit text-xs text-blenduca-verde font-semibold">
+                      Economia de {formatCurrency(resumo.economia)}/mes
+                    </span>
+                  )}
+                </div>
+
+                {/* Experience Flix */}
+                <div className="mb-4">
+                  <h4 className="font-kanit font-semibold text-sm text-blenduca-grafite mb-1">
+                    Experience Flix - {techData.experienceFlix.plano}
+                  </h4>
+                  <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2">
+                    {techData.experienceFlix.descricao}
+                  </p>
+                  <ul className="space-y-0.5">
+                    {techData.experienceFlix.recursos.map((rec, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 text-xs font-kanit text-blenduca-cinza-medio"
+                      >
+                        <span className="text-blenduca-verde shrink-0">&#10003;</span>
+                        {rec}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Funnel Pages */}
+                <div>
+                  <h4 className="font-kanit font-semibold text-sm text-blenduca-grafite mb-1">
+                    Funnel Pages - {techData.funnelPages.plano}
+                  </h4>
+                  <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2">
+                    {techData.funnelPages.descricao}
+                  </p>
+                  <ul className="space-y-0.5">
+                    {techData.funnelPages.funis.map((funil, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-2 text-xs font-kanit text-blenduca-cinza-medio"
+                      >
+                        <span className="text-blenduca-verde shrink-0">&#10003;</span>
+                        {funil}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Genius AI (Scale only) */}
+                {techData.geniusAI && (
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <h4 className="font-kanit font-semibold text-sm text-blenduca-grafite mb-1">
+                      Genius A.I - {techData.geniusAI.plano}
+                    </h4>
+                    <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2">
+                      {techData.geniusAI.descricao}
+                    </p>
+                    <ul className="space-y-0.5">
+                      {techData.geniusAI.recursos.map((rec, i) => (
+                        <li
+                          key={i}
+                          className="flex items-start gap-2 text-xs font-kanit text-blenduca-cinza-medio"
+                        >
+                          <span className="text-blenduca-azul shrink-0">&#10003;</span>
+                          {rec}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Upgrades */}
+            {(resumo.upgradeFlixMensal > 0 || resumo.funisExtrasMensal > 0) && (
+              <div className="mb-6 border border-gray-100 rounded-lg p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blenduca-azul text-white px-2 py-1 rounded">
+                    UPGRADES
+                  </span>
+                </div>
+
                 <div className="space-y-3">
-                  {produto.entregaveis.map((pilar) => (
-                    <div key={pilar.pilar}>
-                      <h4 className="font-kanit font-semibold text-xs uppercase tracking-wide text-blenduca-grafite mb-1">
-                        {pilar.pilar}
-                      </h4>
+                  {upgradeFlixInfo && (
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                          Upgrade Experience Flix
+                        </h4>
+                        <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                          {upgradeFlixInfo.descricao}
+                        </p>
+                      </div>
+                      <span className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                        +{formatCurrency(resumo.upgradeFlixMensal)}/mes
+                      </span>
+                    </div>
+                  )}
+
+                  {funisExtras > 0 && (
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                          {funisExtras} Funis Adicionais
+                        </h4>
+                        <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                          {funisAdicionaisConfig.observacao}
+                        </p>
+                      </div>
+                      <span className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                        +{formatCurrency(resumo.funisExtrasMensal)}/mes
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* AI Agents */}
+            {agentes.length > 0 && (
+              <div className="mb-6 border border-gray-100 rounded-lg p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blenduca-grafite text-white px-2 py-1 rounded">
+                    AGENTES A.I
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {agentes.map((item) => (
+                    <div key={item.agente.id} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-kanit font-semibold text-sm text-blenduca-grafite flex items-center gap-2">
+                            <span>{item.agente.icone}</span>
+                            {item.agente.nome}
+                          </h4>
+                          <p className="font-kanit text-xs text-blenduca-cinza-medio">
+                            {item.agente.descricao}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Agent extras */}
+                      <div className="bg-gray-50 rounded-lg p-3 mb-2">
+                        <div className="flex justify-between text-xs font-kanit mb-1">
+                          <span className="text-blenduca-cinza-medio">Setup:</span>
+                          <span className="font-medium text-blenduca-grafite">
+                            {formatCurrency(item.setupTotal)}
+                          </span>
+                        </div>
+                        {(item.acoesExtras ?? 0) > 0 && (
+                          <div className="flex justify-between text-xs font-kanit mb-1">
+                            <span className="text-blenduca-cinza-medio">Acoes Extras:</span>
+                            <span className="font-medium text-blenduca-grafite">
+                              {item.acoesExtras}x
+                            </span>
+                          </div>
+                        )}
+                        {(item.integracoesExtras ?? 0) > 0 && (
+                          <div className="flex justify-between text-xs font-kanit mb-1">
+                            <span className="text-blenduca-cinza-medio">Integracoes Extras:</span>
+                            <span className="font-medium text-blenduca-grafite">
+                              {item.integracoesExtras}x
+                            </span>
+                          </div>
+                        )}
+                        {(item.numerosExtras ?? 0) > 0 && (
+                          <div className="flex justify-between text-xs font-kanit mb-1">
+                            <span className="text-blenduca-cinza-medio">Numeros Extras:</span>
+                            <span className="font-medium text-blenduca-grafite">
+                              {item.numerosExtras}x
+                            </span>
+                          </div>
+                        )}
+                        {item.prospeccaoAtiva && (
+                          <div className="flex justify-between text-xs font-kanit mb-1">
+                            <span className="text-blenduca-cinza-medio">Prospeccao Ativa:</span>
+                            <span className="font-medium text-blenduca-grafite">Incluso</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm font-kanit border-t border-gray-200 pt-1 mt-1">
+                          <span className="font-semibold text-blenduca-grafite">Mensal:</span>
+                          <span className="font-bold text-blenduca-grafite">
+                            {formatCurrency(item.mensalTotal)}/mes
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Deliverables */}
                       <ul className="space-y-0.5">
-                        {pilar.items.map((item, idx) => (
+                        {item.agente.entregaveis.map((ent, i) => (
                           <li
-                            key={idx}
+                            key={i}
                             className="flex items-start gap-2 text-xs font-kanit text-blenduca-cinza-medio"
                           >
-                            <svg className="w-3 h-3 text-blenduca-vermelho mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                            <span>
-                              {item.descricao}
-                              {item.frequencia && ` (${item.frequencia})`}
-                              {item.tipo && ` [${item.tipo}]`}
-                              {item.quantidade && ` - ${item.quantidade}`}
-                            </span>
+                            <span className="text-blenduca-vermelho shrink-0">&#10003;</span>
+                            {ent}
                           </li>
                         ))}
                       </ul>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Funnel Pages upgrade */}
-            {funnel && funnelItem && (
-              <div className="mb-6 border border-gray-100 rounded-lg p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blenduca-grafite text-white px-2 py-1 rounded">
-                    FUNNEL PAGES
-                  </span>
-                  <span
-                    className="font-play text-[10px] font-bold tracking-wider uppercase text-white px-2 py-1 rounded"
-                    style={{ backgroundColor: funnel.cor }}
-                  >
-                    {funnel.plano}
-                  </span>
-                </div>
-                <h3 className="font-kanit font-bold text-base text-blenduca-grafite mb-1">
-                  {funnel.nome}
-                </h3>
-                <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2">
-                  {funnel.descricao}
-                </p>
-
-                {/* Pricing breakdown */}
-                <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                  <div className="flex justify-between text-xs font-kanit mb-1">
-                    <span className="text-blenduca-cinza-medio">Plano Base:</span>
-                    <span className="font-medium text-blenduca-grafite">
-                      {formatCurrency(funnelItem.precoBase ?? funnel.preco)}
-                    </span>
-                  </div>
-                  {(funnelItem.funisExtras ?? 0) > 0 && (
-                    <div className="flex justify-between text-xs font-kanit mb-1">
-                      <span className="text-blenduca-cinza-medio">
-                        Funis Extras ({funnelItem.funisExtras}x):
-                      </span>
-                      <span className="font-medium text-blenduca-grafite">
-                        {formatCurrency(funnelItem.precoExtras ?? 0)}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-sm font-kanit border-t border-gray-200 pt-1 mt-1">
-                    <span className="font-semibold text-blenduca-grafite">Total Mensal:</span>
-                    <span className="font-bold text-blenduca-grafite">
-                      {formatCurrency(funnelItem.precoTotal ?? funnel.preco)}/mes
-                    </span>
-                  </div>
-                </div>
-
-                {/* Deliverables */}
-                <h4 className="font-kanit font-semibold text-xs text-blenduca-grafite mb-1.5">
-                  Recursos inclusos:
-                </h4>
-                <ul className="space-y-0.5">
-                  {funnel.entregaveisBase.map((ent, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-2 text-xs font-kanit text-blenduca-cinza-medio"
-                    >
-                      <span className="text-blenduca-verde shrink-0">&#10003;</span>
-                      {ent}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Experience Flix upgrade */}
-            {flix && flixItem && (
-              <div className="mb-6 border border-gray-100 rounded-lg p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blenduca-grafite text-white px-2 py-1 rounded">
-                    EXPERIENCE FLIX
-                  </span>
-                  <span
-                    className="font-play text-[10px] font-bold tracking-wider uppercase text-white px-2 py-1 rounded"
-                    style={{ backgroundColor: flix.cor }}
-                  >
-                    {flix.plano}
-                  </span>
-                </div>
-                <h3 className="font-kanit font-bold text-base text-blenduca-grafite mb-1">
-                  {flix.nome}
-                </h3>
-                <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2">
-                  {flix.descricao}
-                </p>
-
-                {/* Price */}
-                <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                  <div className="flex justify-between text-sm font-kanit">
-                    <span className="font-semibold text-blenduca-grafite">Investimento Mensal:</span>
-                    <span className="font-bold text-blenduca-grafite">
-                      {formatCurrency(flixItem.precoTotal ?? flix.preco)}/mes
-                    </span>
-                  </div>
-                </div>
-
-                {/* Plan limits */}
-                {flix.limitesPlano && (
-                  <div className="bg-blue-50/50 rounded-lg p-3 mb-3">
-                    <h4 className="font-kanit font-semibold text-xs text-blenduca-grafite mb-1.5">
-                      Limites do Plano:
-                    </h4>
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-xs font-kanit">
-                        <span className="text-blenduca-cinza-medio">Areas de Membros:</span>
-                        <span className="font-medium text-blenduca-grafite">{flix.limitesPlano.areasMembrosBD}</span>
-                      </div>
-                      <div className="flex justify-between text-xs font-kanit">
-                        <span className="text-blenduca-cinza-medio">Membros Ativos/mes:</span>
-                        <span className="font-medium text-blenduca-grafite">{flix.limitesPlano.membrosAtivosMes}</span>
-                      </div>
-                      {flix.limitesPlano.relatoriosPersonalizadosBD > 0 && (
-                        <div className="flex justify-between text-xs font-kanit">
-                          <span className="text-blenduca-cinza-medio">Relatorios Personalizados:</span>
-                          <span className="font-medium text-blenduca-grafite">{flix.limitesPlano.relatoriosPersonalizadosBD}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Deliverables */}
-                <h4 className="font-kanit font-semibold text-xs text-blenduca-grafite mb-1.5">
-                  Recursos inclusos:
-                </h4>
-                <ul className="space-y-0.5">
-                  {flix.entregaveisBase.map((ent, i) => (
-                    <li
-                      key={i}
-                      className="flex items-start gap-2 text-xs font-kanit text-blenduca-cinza-medio"
-                    >
-                      <span className="text-blenduca-azul shrink-0">&#10003;</span>
-                      {ent}
-                    </li>
-                  ))}
-                </ul>
               </div>
             )}
           </section>
@@ -374,53 +469,75 @@ export default function ProposalPreview() {
             <SectionTitle>Investimento</SectionTitle>
             <div className="bg-gray-50 rounded-lg p-5">
               <div className="space-y-2">
-                {resumo.totalProduto > 0 && (
-                  <div className="flex justify-between text-sm font-kanit">
-                    <span className="text-blenduca-cinza-medio">Produto Principal:</span>
-                    <span className="font-medium text-blenduca-grafite">
-                      {formatCurrency(resumo.totalProduto)}
-                    </span>
-                  </div>
+                {/* Setup costs */}
+                {(resumo.totalSetup > 0 || resumo.totalEntrada > 0) && (
+                  <>
+                    <h4 className="font-kanit font-semibold text-xs uppercase tracking-wide text-blenduca-cinza-medio mb-2">
+                      Investimento Inicial
+                    </h4>
+                    {resumo.totalEntrada > 0 && (
+                      <div className="flex justify-between text-sm font-kanit">
+                        <span className="text-blenduca-cinza-medio">Taxa de Entrada:</span>
+                        <span className="font-medium text-blenduca-grafite">
+                          {formatCurrency(resumo.totalEntrada)}
+                        </span>
+                      </div>
+                    )}
+                    {resumo.agentesSetup > 0 && (
+                      <div className="flex justify-between text-sm font-kanit">
+                        <span className="text-blenduca-cinza-medio">Setup Agentes A.I:</span>
+                        <span className="font-medium text-blenduca-grafite">
+                          {formatCurrency(resumo.agentesSetup)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="border-t border-gray-200 pt-2 mt-2">
+                      <div className="flex justify-between text-sm font-kanit">
+                        <span className="font-semibold text-blenduca-grafite">Total Inicial:</span>
+                        <span className="font-bold text-blenduca-grafite">
+                          {formatCurrency(resumo.totalEntrada + resumo.totalSetup)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="my-4 border-b border-gray-200" />
+                  </>
                 )}
-                {resumo.totalFunnel > 0 && (
-                  <div className="flex justify-between text-sm font-kanit">
-                    <span className="text-blenduca-cinza-medio">Funnel Pages:</span>
-                    <span className="font-medium text-blenduca-grafite">
-                      {formatCurrency(resumo.totalFunnel)}
-                    </span>
-                  </div>
-                )}
-                {resumo.totalFlix > 0 && (
-                  <div className="flex justify-between text-sm font-kanit">
-                    <span className="text-blenduca-cinza-medio">Experience Flix:</span>
-                    <span className="font-medium text-blenduca-grafite">
-                      {formatCurrency(resumo.totalFlix)}
-                    </span>
-                  </div>
-                )}
-                <div className="border-t border-gray-200 pt-2">
-                  <div className="flex justify-between text-sm font-kanit">
-                    <span className="text-blenduca-cinza-medio">Subtotal Mensal:</span>
-                    <span className="font-medium text-blenduca-grafite">
-                      {formatCurrency(resumo.subtotal)}
-                    </span>
-                  </div>
+
+                {/* Monthly costs */}
+                <h4 className="font-kanit font-semibold text-xs uppercase tracking-wide text-blenduca-cinza-medio mb-2">
+                  Investimento Mensal
+                </h4>
+                <div className="flex justify-between text-sm font-kanit">
+                  <span className="text-blenduca-cinza-medio">Pacote Base:</span>
+                  <span className="font-medium text-blenduca-grafite">
+                    {formatCurrency(resumo.pacoteMensal)}
+                  </span>
                 </div>
-                {resumo.desconto > 0 && (
+                {resumo.totalUpgradesMensal > 0 && (
                   <div className="flex justify-between text-sm font-kanit">
-                    <span className="text-blenduca-vermelho">Desconto:</span>
-                    <span className="font-medium text-blenduca-vermelho">
-                      - {formatCurrency(resumo.desconto)}
+                    <span className="text-blenduca-cinza-medio">Upgrades:</span>
+                    <span className="font-medium text-blenduca-grafite">
+                      {formatCurrency(resumo.totalUpgradesMensal)}
                     </span>
                   </div>
                 )}
+                {resumo.agentesMensal > 0 && (
+                  <div className="flex justify-between text-sm font-kanit">
+                    <span className="text-blenduca-cinza-medio">Agentes A.I:</span>
+                    <span className="font-medium text-blenduca-grafite">
+                      {formatCurrency(resumo.agentesMensal)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Total */}
                 <div className="border-t-2 border-blenduca-grafite pt-3 mt-2">
                   <div className="flex justify-between items-baseline">
                     <span className="font-kanit font-bold text-base text-blenduca-grafite">
                       TOTAL MENSAL:
                     </span>
                     <span className="font-kanit font-bold text-2xl text-blenduca-vermelho">
-                      {formatCurrency(resumo.total)}
+                      {formatCurrency(resumo.totalMensal)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm font-kanit mt-1">
@@ -429,6 +546,14 @@ export default function ProposalPreview() {
                       {formatCurrency(resumo.totalAnual)}
                     </span>
                   </div>
+                  {resumo.economia > 0 && (
+                    <div className="flex justify-between text-sm font-kanit mt-1">
+                      <span className="text-blenduca-verde">Economia (Tecnologia Inclusa):</span>
+                      <span className="font-medium text-blenduca-verde">
+                        {formatCurrency(resumo.economia)}/mes
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -438,38 +563,23 @@ export default function ProposalPreview() {
           <section>
             <SectionTitle>Condicoes Comerciais</SectionTitle>
             <ul className="space-y-1.5">
-              {produto && (
-                <>
-                  <li className="flex items-start gap-2 text-sm font-kanit text-blenduca-cinza-medio">
-                    <span className="text-blenduca-vermelho shrink-0">&#8226;</span>
-                    Duracao: {produto.duracao}
-                  </li>
-                  <li className="flex items-start gap-2 text-sm font-kanit text-blenduca-cinza-medio">
-                    <span className="text-blenduca-vermelho shrink-0">&#8226;</span>
-                    Periodo Minimo: {produto.investimento.minimoMeses} meses
-                  </li>
-                </>
-              )}
-              {funnel && (
-                <li className="flex items-start gap-2 text-sm font-kanit text-blenduca-cinza-medio">
-                  <span className="text-blenduca-vermelho shrink-0">&#8226;</span>
-                  Funnel Pages: Contrato de {funnel.duracaoMinima} meses
-                </li>
-              )}
-              {flix && (
-                <li className="flex items-start gap-2 text-sm font-kanit text-blenduca-cinza-medio">
-                  <span className="text-blenduca-vermelho shrink-0">&#8226;</span>
-                  Experience Flix: Contrato de {flix.duracaoMinima} meses
-                </li>
-              )}
+              <li className="flex items-start gap-2 text-sm font-kanit text-blenduca-cinza-medio">
+                <span className="text-blenduca-vermelho shrink-0">&#8226;</span>
+                Duracao: Contrato de 12 meses
+              </li>
+              <li className="flex items-start gap-2 text-sm font-kanit text-blenduca-cinza-medio">
+                <span className="text-blenduca-vermelho shrink-0">&#8226;</span>
+                Periodo Minimo: 3 meses
+              </li>
               <li className="flex items-start gap-2 text-sm font-kanit text-blenduca-cinza-medio">
                 <span className="text-blenduca-vermelho shrink-0">&#8226;</span>
                 Aviso Previo: 30 dias
               </li>
-              {produto?.investimento.extras && (
+              {carrinho.condicaoPagamento === "revenue_share" && (
                 <li className="flex items-start gap-2 text-sm font-kanit text-blenduca-cinza-medio">
                   <span className="text-blenduca-vermelho shrink-0">&#8226;</span>
-                  Extras: {produto.investimento.extras}
+                  Condicao Especial: Revenue Share
+                  {carrinho.revenueShareObservacoes && ` - ${carrinho.revenueShareObservacoes}`}
                 </li>
               )}
             </ul>
@@ -558,6 +668,21 @@ function InfoLine({ label, value }: { label: string; value: string }) {
     <div>
       <span className="font-kanit text-xs text-blenduca-cinza-medio">{label}:</span>
       <p className="font-kanit text-sm font-medium text-blenduca-grafite">{value}</p>
+    </div>
+  );
+}
+
+function FeatureTag({ label, included }: { label: string; included: boolean }) {
+  return (
+    <div
+      className={`px-2 py-1 rounded text-xs font-kanit text-center ${
+        included
+          ? "bg-blenduca-verde/10 text-blenduca-verde"
+          : "bg-gray-100 text-blenduca-cinza-medio line-through"
+      }`}
+    >
+      {included ? "✓ " : ""}
+      {label}
     </div>
   );
 }

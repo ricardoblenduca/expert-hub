@@ -21,7 +21,7 @@ export const precosMatriz: PrecosMatriz = {
 
   scale: {
     completo: { entrada: 7500, mensal: 7500 },
-    consultoria: { entrada: 0, mensal: 4000 },
-    comunidade: { entrada: 0, mensal: 1500 },
+    consultoria: { entrada: 0, mensal: 5000 },  // V0.17: Updated from 4000
+    comunidade: { entrada: 0, mensal: 2000 },   // V0.17: Updated from 1500
   },
 };

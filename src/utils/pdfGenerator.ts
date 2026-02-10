@@ -47,11 +47,11 @@ export async function generateProposalPDF(proposta: Proposta) {
     }
   }
 
-  // V0.16: Clean footer with only 2 lines
+  // V0.17: Complete footer with 3 lines (email and site)
   function addFooter() {
     doc.setDrawColor(...COLORS.vermelho);
     doc.setLineWidth(0.8);
-    doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+    doc.line(margin, pageHeight - 24, pageWidth - margin, pageHeight - 24);
 
     // Line 1: Main phrase
     doc.setFontSize(10);
@@ -60,7 +60,7 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.text(
       "Somos a Blenduca, Experts em Negocios de Conhecimento!",
       pageWidth / 2,
-      pageHeight - 14,
+      pageHeight - 18,
       { align: "center" }
     );
 
@@ -71,7 +71,18 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.text(
       "#OMelhorDeCadaExpert",
       pageWidth / 2,
-      pageHeight - 8,
+      pageHeight - 12,
+      { align: "center" }
+    );
+
+    // Line 3: Website and email
+    doc.setFontSize(9);
+    doc.setTextColor(...COLORS.vermelho);
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      "blenduca.com.br | comercial@blenduca.com.br",
+      pageWidth / 2,
+      pageHeight - 6,
       { align: "center" }
     );
   }
@@ -213,7 +224,53 @@ export async function generateProposalPDF(proposta: Proposta) {
   // ========= SOLUCAO PROPOSTA =========
   sectionTitle("SOLUCAO PROPOSTA");
 
+  // V0.17 Updated: Program names, colors, and descriptions
+  const PROGRAMAS: Record<string, { nome: string; cor: [number, number, number] }> = {
+    starter: { nome: "VIDA DE EXPERT", cor: [194, 34, 53] },        // #C22235 Vermelho
+    professional: { nome: "ACELERA EXPERT", cor: [95, 91, 66] },    // #5F5B42 Marrom/Dourado
+    business: { nome: "EXPERT BUSINESS", cor: [17, 63, 75] },       // #113F4B Azul petroleo
+    scale: { nome: "EXPERT CONSULTING", cor: [34, 34, 34] },        // #222222 Preto/Carvao
+  };
+
+  const DESCRICOES_PROGRAMAS: Record<string, string> = {
+    starter: "O programa inicial para experts que estao comecando a estruturar seu negocio de conhecimento com base solida e metodologia validada.",
+    professional: "O programa de aceleracao para experts que querem crescer rapidamente, escalar sua operacao e conquistar posicionamento de autoridade no mercado.",
+    business: "O programa completo para experts que ja possuem estrutura e querem expandir com estrategias avancadas, automacao e gestao profissional do negocio.",
+    scale: "O programa premium de consultoria especializada para experts que buscam maxima performance, expansao internacional e criacao de legado duradouro.",
+  };
+
   let sectionNum = 1;
+
+  // V0.17 Updated: Solution Emphasis with dynamic colors
+  if (modalidadeData && nivelData && nivel && modalidade) {
+    checkPageBreak(35);
+    // Dynamic color based on nivel
+    const corPrograma = PROGRAMAS[nivel]?.cor || [194, 34, 53];
+    doc.setFillColor(...corPrograma);
+    doc.roundedRect(margin, y - 2, contentWidth, 28, 2, 2, "F");
+
+    // Badge
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.text("SOLUCAO PROPOSTA", pageWidth / 2, y + 4, { align: "center" });
+
+    // Program Name
+    const programName = PROGRAMAS[nivel]?.nome || "";
+    doc.setFontSize(16);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${nivelData.nome.toUpperCase()} - ${programName}`, pageWidth / 2, y + 14, { align: "center" });
+
+    // Description - use the custom description
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    const descricao = DESCRICOES_PROGRAMAS[nivel] || modalidadeData.descricao;
+    const descLines = doc.splitTextToSize(descricao, contentWidth - 20);
+    doc.text(descLines.slice(0, 2), pageWidth / 2, y + 22, { align: "center" });
+
+    y += 32;
+  }
 
   // Package - Modalidade + Nivel
   if (modalidadeData && nivelData) {
@@ -560,8 +617,12 @@ export async function generateProposalPDF(proposta: Proposta) {
     });
   }
 
+  // V0.17: Page break before INVESTIMENTO
+  addFooter();
+  doc.addPage();
+  y = 20;
+
   // ========= INVESTIMENTO - V0.16: Compact Layout =========
-  y += 2;
   sectionTitle("INVESTIMENTO");
 
   // V0.16: Calculate compact box height (reduced spacing)
@@ -790,6 +851,11 @@ export async function generateProposalPDF(proposta: Proposta) {
   }
 
   y = boxY + boxHeight + 4;
+
+  // V0.17: Page break before CONDIÇÕES COMERCIAIS
+  addFooter();
+  doc.addPage();
+  y = 20;
 
   // ========= CONDICOES COMERCIAIS =========
   sectionTitle("CONDICOES COMERCIAIS");

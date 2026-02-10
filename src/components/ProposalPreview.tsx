@@ -6,7 +6,50 @@ import { formatCurrency, formatDate, generateId } from "@/utils/formatting";
 import { modalidades, niveisMap } from "@/data/modalidades";
 import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
 import { getPilaresParaModalidadeENivel } from "@/data/entregaveis";
-import type { Proposta, NivelId } from "@/types";
+import type { Proposta, NivelId, ModalidadeId } from "@/types";
+
+// V0.17 Updated: Program names, colors, and descriptions
+const PROGRAMAS: Record<NivelId, { nome: string; cor: string; corTexto: string }> = {
+  starter: {
+    nome: "VIDA DE EXPERT",
+    cor: "#C22235",      // Vermelho
+    corTexto: "#FFFFFF"
+  },
+  professional: {
+    nome: "ACELERA EXPERT",
+    cor: "#5F5B42",      // Marrom/Dourado escuro
+    corTexto: "#FFFFFF"
+  },
+  business: {
+    nome: "EXPERT BUSINESS",
+    cor: "#113F4B",      // Azul petroleo escuro
+    corTexto: "#FFFFFF"
+  },
+  scale: {
+    nome: "EXPERT CONSULTING",
+    cor: "#222222",      // Preto/Carvao
+    corTexto: "#FFFFFF"
+  },
+};
+
+const DESCRICOES_PROGRAMAS: Record<NivelId, string> = {
+  starter: "O programa inicial para experts que estao comecando a estruturar seu negocio de conhecimento com base solida e metodologia validada.",
+  professional: "O programa de aceleracao para experts que querem crescer rapidamente, escalar sua operacao e conquistar posicionamento de autoridade no mercado.",
+  business: "O programa completo para experts que ja possuem estrutura e querem expandir com estrategias avancadas, automacao e gestao profissional do negocio.",
+  scale: "O programa premium de consultoria especializada para experts que buscam maxima performance, expansao internacional e criacao de legado duradouro.",
+};
+
+// Helper function to darken color for gradient
+function escurecerCor(hex: string, percent: number): string {
+  hex = hex.replace("#", "");
+  let r = parseInt(hex.substring(0, 2), 16);
+  let g = parseInt(hex.substring(2, 4), 16);
+  let b = parseInt(hex.substring(4, 6), 16);
+  r = Math.floor(r * (1 - percent / 100));
+  g = Math.floor(g * (1 - percent / 100));
+  b = Math.floor(b * (1 - percent / 100));
+  return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
 
 export default function ProposalPreview() {
   const carrinho = useCartStore((s) => s.carrinho);
@@ -189,6 +232,28 @@ export default function ProposalPreview() {
           {/* Proposed solution */}
           <section>
             <SectionTitle>Solucao Proposta</SectionTitle>
+
+            {/* V0.17 Updated: Solution Emphasis with dynamic colors */}
+            {modalidadeData && nivelData && nivel && modalidade && (
+              <div
+                className="mb-6 p-6 md:p-8 rounded-xl text-center shadow-lg"
+                style={{
+                  background: `linear-gradient(135deg, ${PROGRAMAS[nivel].cor} 0%, ${escurecerCor(PROGRAMAS[nivel].cor, 15)} 100%)`
+                }}
+              >
+                <div className="inline-block px-4 py-1.5 bg-white/20 rounded-full mb-4">
+                  <span className="font-play text-[10px] font-bold tracking-wider uppercase text-white">
+                    SOLUCAO PROPOSTA
+                  </span>
+                </div>
+                <h2 className="font-kanit font-bold text-2xl md:text-3xl text-white mb-3 tracking-wide" style={{ textShadow: "0 2px 4px rgba(0, 0, 0, 0.3)" }}>
+                  {nivelData.nome.toUpperCase()} - {PROGRAMAS[nivel].nome}
+                </h2>
+                <p className="font-kanit text-sm text-white/90 max-w-lg mx-auto">
+                  {DESCRICOES_PROGRAMAS[nivel]}
+                </p>
+              </div>
+            )}
 
             {/* Package - Modalidade + Nivel */}
             {modalidadeData && nivelData && (
@@ -936,13 +1001,16 @@ export default function ProposalPreview() {
             </ol>
           </section>
 
-          {/* Footer - V0.16: Clean 2 lines only */}
+          {/* Footer - V0.17: Complete 3 lines with email and site */}
           <div className="border-t-2 border-blenduca-vermelho pt-6 text-center">
             <p className="font-kanit font-bold text-sm text-blenduca-vermelho">
               Somos a Blenduca, Experts em Negocios de Conhecimento!
             </p>
             <p className="font-kanit font-bold text-sm text-blenduca-vermelho mt-1">
               #OMelhorDeCadaExpert
+            </p>
+            <p className="font-kanit text-sm text-blenduca-vermelho mt-2">
+              blenduca.com.br | comercial@blenduca.com.br
             </p>
           </div>
         </div>

@@ -58,8 +58,14 @@ export default function TecnologiaAvulsa() {
   const modalidadeInfo = modalidade ? modalidades[modalidade] : null;
   const nivelInfo = nivel ? niveisMap[nivel] : null;
 
+  // V0.17: Fix standalone technology navigation
   const handleBack = () => {
-    setStep("nivel");
+    // If no modalidade selected (standalone technology), go back to home
+    if (!modalidade) {
+      setStep("home");
+    } else {
+      setStep("nivel");
+    }
   };
 
   const handleContinue = () => {

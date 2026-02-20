@@ -6,6 +6,7 @@ import { formatCurrency, formatDate, generateId } from "@/utils/formatting";
 import { modalidades, niveisMap } from "@/data/modalidades";
 import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
 import { getPilaresParaModalidadeENivel } from "@/data/entregaveis";
+import { SERVICOS_EXTRAS } from "@/data/servicosExtras";
 import type { Proposta, NivelId, ModalidadeId } from "@/types";
 
 // V0.17 Updated: Program names, colors, and descriptions
@@ -61,7 +62,7 @@ export default function ProposalPreview() {
   const [generating, setGenerating] = useState(false);
 
   const resumo = calcularResumo();
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, centralInteligencia, agentes, coprodutor, descontoMensal, descontoSetup } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, centralInteligencia, agentes, coprodutor, servicosExtras, descontoMensal, descontoSetup } = carrinho;
 
   const modalidadeData = modalidade ? modalidades[modalidade] : null;
   const nivelData = nivel ? niveisMap[nivel] : null;
@@ -774,6 +775,32 @@ export default function ProposalPreview() {
                         <span className="font-medium text-blenduca-grafite">
                           {formatCurrency(resumo.agentesSetup)}
                         </span>
+                      </div>
+                    )}
+
+                    {/* Servicos Extras V0.18 */}
+                    {resumo.servicosExtrasTotal > 0 && nivel && (
+                      <div>
+                        {servicosExtras.expertPlanning && (
+                          <div className="flex justify-between text-sm font-kanit">
+                            <span className="text-blenduca-cinza-medio">
+                              📋 {SERVICOS_EXTRAS.expertPlanning.nome}:
+                            </span>
+                            <span className="font-medium text-orange-700">
+                              {formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[nivel])}
+                            </span>
+                          </div>
+                        )}
+                        {servicosExtras.sessaoMentoriaQtd > 0 && (
+                          <div className="flex justify-between text-sm font-kanit">
+                            <span className="text-blenduca-cinza-medio">
+                              🎯 {servicosExtras.sessaoMentoriaQtd}x {SERVICOS_EXTRAS.sessaoMentoria.nome}:
+                            </span>
+                            <span className="font-medium text-orange-700">
+                              {formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
 

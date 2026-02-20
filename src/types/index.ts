@@ -402,6 +402,15 @@ export interface CentralInteligenciaConfig {
 }
 
 // ============================================
+// SERVICOS EXTRAS V0.18
+// ============================================
+
+export interface ServicosExtrasConfig {
+  expertPlanning: boolean; // Expert Planning Anual selecionado
+  sessaoMentoriaQtd: number; // Quantidade de sessoes individuais de mentoria
+}
+
+// ============================================
 // CARRINHO V5.0
 // ============================================
 
@@ -454,6 +463,9 @@ export interface CarrinhoState {
 
   // Co-produtor (Business/Scale only)
   coprodutor: CoProdutorConfig | null;
+
+  // Servicos Extras V0.18
+  servicosExtras: ServicosExtrasConfig;
 
   // Desconto mensal V0.11 (V0.14: renamed from desconto)
   descontoMensal: DescontoConfig;
@@ -512,6 +524,9 @@ export interface ResumoCarrinho {
   totalInicialComDesconto: number; // V0.14
   totalMensal: number;
   totalAnual: number;
+
+  // Servicos Extras V0.18
+  servicosExtrasTotal: number; // custo total de servicos extras (setup/avulso)
 
   // Co-produtor (apenas dados, sem cálculo de valor) - V0.12
   coprodutorNome: string;

@@ -71,8 +71,8 @@ export default function AgentesSection() {
   };
 
   const handleContinue = () => {
-    // V0.12: Always go to negociacao step after agentes
-    setStep("negociacao");
+    // V0.18: Go to extras step after agentes
+    setStep("extras");
   };
 
   const isAgenteAdicionado = (agenteId: string) => {

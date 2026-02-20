@@ -3,6 +3,7 @@
 import { useCartStore } from "@/store/useCartStore";
 import { modalidades, niveisMap } from "@/data/modalidades";
 import { tecnologiaInclusa } from "@/data/tecnologiaInclusa";
+import { SERVICOS_EXTRAS } from "@/data/servicosExtras";
 import { formatCurrency } from "@/utils/formatting";
 
 export default function CartSidebar() {
@@ -13,7 +14,7 @@ export default function CartSidebar() {
   const setMobileCartOpen = useCartStore((s) => s.setMobileCartOpen);
   const addToast = useCartStore((s) => s.addToast);
 
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes, tecnologiaAvulsa, tipoProposta, centralInteligencia } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, agentes, tecnologiaAvulsa, tipoProposta, centralInteligencia, servicosExtras } = carrinho;
   const resumo = calcularResumo();
 
   const modalidadeInfo = modalidade ? modalidades[modalidade] : null;
@@ -25,7 +26,8 @@ export default function CartSidebar() {
   const hasTech = tecnologiaAvulsa !== null;
   const hasAgents = agentes.length > 0;
   const hasCentralInteligencia = centralInteligencia.pacoteSelecionado !== null;
-  const hasAnything = hasPrograma || hasTech || hasAgents || hasCentralInteligencia;
+  const hasServicosExtras = servicosExtras.expertPlanning || servicosExtras.sessaoMentoriaQtd > 0;
+  const hasAnything = hasPrograma || hasTech || hasAgents || hasCentralInteligencia || hasServicosExtras;
 
   const handleFinalize = () => {
     if (!hasAnything) {
@@ -238,6 +240,44 @@ export default function CartSidebar() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Servicos Extras - V0.18 */}
+            {hasServicosExtras && nivel && (
+              <div className="bg-orange-50/50 border border-orange-100 rounded-lg p-4">
+                <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-orange-700 mb-3">
+                  ✨ SERVICOS EXTRAS
+                </h3>
+
+                <div className="space-y-2">
+                  {servicosExtras.expertPlanning && (
+                    <div className="flex items-center justify-between text-xs font-kanit">
+                      <span className="text-blenduca-grafite">
+                        📋 {SERVICOS_EXTRAS.expertPlanning.nome}
+                      </span>
+                      <span className="font-medium text-blenduca-grafite">
+                        {formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[nivel])}
+                      </span>
+                    </div>
+                  )}
+                  {servicosExtras.sessaoMentoriaQtd > 0 && (
+                    <div className="flex items-center justify-between text-xs font-kanit">
+                      <span className="text-blenduca-grafite">
+                        🎯 {servicosExtras.sessaoMentoriaQtd}x {SERVICOS_EXTRAS.sessaoMentoria.nome}
+                      </span>
+                      <span className="font-medium text-blenduca-grafite">
+                        {formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-xs font-kanit pt-2 border-t border-orange-100">
+                    <span className="text-blenduca-cinza-medio">Total extras:</span>
+                    <span className="font-medium text-orange-700">
+                      {formatCurrency(resumo.servicosExtrasTotal)}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}

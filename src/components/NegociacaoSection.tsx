@@ -27,7 +27,7 @@ export default function NegociacaoSection() {
   const coprodutorDisponivel = nivel === "business" || nivel === "scale";
 
   const handleBack = () => {
-    setStep("agentes");
+    setStep("extras");
   };
 
   const handleContinue = () => {

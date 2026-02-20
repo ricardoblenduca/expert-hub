@@ -10,6 +10,7 @@ import TecnologiaAvulsa from "@/components/TecnologiaAvulsa";
 import AgentesSection from "@/components/AgentesSection";
 import NegociacaoSection from "@/components/NegociacaoSection";
 import CartSidebar from "@/components/CartSidebar";
+import ServicosExtrasSection from "@/components/ServicosExtrasSection";
 import ClientForm from "@/components/ClientForm";
 import ProposalPreview from "@/components/ProposalPreview";
 import Toast from "@/components/Toast";
@@ -25,6 +26,7 @@ export default function Home() {
     "adicionar_tech",
     "tecnologia",
     "agentes",
+    "extras",
     "negociacao",
   ].includes(step);
 
@@ -52,6 +54,7 @@ export default function Home() {
             {step === "adicionar_tech" && <TecnologiaAvulsa />}
             {step === "tecnologia" && <TecnologiaAvulsa />}
             {step === "agentes" && <AgentesSection />}
+            {step === "extras" && <ServicosExtrasSection />}
             {step === "negociacao" && <NegociacaoSection />}
           </main>
 

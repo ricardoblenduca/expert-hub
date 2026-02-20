@@ -15,7 +15,9 @@ import type {
   DescontoConfig,
   TipoDesconto,
   CentralInteligenciaPacoteId,
+  ServicosExtrasConfig,
 } from "@/types";
+import { SERVICOS_EXTRAS } from "@/data/servicosExtras";
 import { precosMatriz } from "@/data/precosMatriz";
 import {
   tecnologiaInclusa,
@@ -32,6 +34,7 @@ export type Step =
   | "adicionar_tech" // Adicionar tech ao Pacote Consultoria/Comunidade
   | "tecnologia" // Contratação avulsa de tecnologia
   | "agentes" // Agentes A.I (pode ser avulso ou adicionar) + Central de Inteligência
+  | "extras" // Serviços Extras V0.18: Expert Planning e Sessões de Mentoria
   | "negociacao" // Negociação: Desconto + Co-produtor (V0.12)
   | "cliente" // Dados do cliente
   | "preview"; // Preview da proposta
@@ -84,6 +87,11 @@ interface StoreState {
   // Central de Inteligência - V0.12 (V0.14: added assistentesExtras)
   setCentralInteligenciaPacote: (pacoteId: CentralInteligenciaPacoteId) => void;
   setCentralInteligenciaExtras: (quantidade: number) => void; // V0.14
+
+  // Servicos Extras V0.18
+  setExpertPlanning: (ativo: boolean) => void;
+  setSessaoMentoriaQtd: (qtd: number) => void;
+  resetServicosExtras: () => void;
 
   // Desconto mensal V0.11 (V0.14: renamed from desconto)
   setDescontoMensalAtivo: (ativo: boolean) => void;
@@ -158,6 +166,11 @@ const initialCentralInteligencia = {
   setupTotal: 0,
 };
 
+const initialServicosExtras: ServicosExtrasConfig = {
+  expertPlanning: false,
+  sessaoMentoriaQtd: 0,
+};
+
 const initialCarrinho: CarrinhoState = {
   tipoProposta: null,
   modalidade: null,
@@ -168,6 +181,7 @@ const initialCarrinho: CarrinhoState = {
   centralInteligencia: initialCentralInteligencia,
   agentes: [],
   coprodutor: null,
+  servicosExtras: initialServicosExtras, // V0.18
   descontoMensal: initialDesconto, // V0.14: renamed from desconto
   descontoSetup: initialDesconto, // V0.14: novo desconto para setup
   condicaoPagamento: "padrao",
@@ -482,6 +496,37 @@ export const useCartStore = create<StoreState>((set, get) => ({
       };
     }),
 
+  // Servicos Extras V0.18
+  setExpertPlanning: (ativo) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        servicosExtras: {
+          ...state.carrinho.servicosExtras,
+          expertPlanning: ativo,
+        },
+      },
+    })),
+
+  setSessaoMentoriaQtd: (qtd) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        servicosExtras: {
+          ...state.carrinho.servicosExtras,
+          sessaoMentoriaQtd: Math.max(0, Math.min(20, qtd)),
+        },
+      },
+    })),
+
+  resetServicosExtras: () =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        servicosExtras: { ...initialServicosExtras },
+      },
+    })),
+
   // Desconto mensal V0.11 (V0.14: renamed from desconto)
   setDescontoMensalAtivo: (ativo) =>
     set((state) => ({
@@ -631,6 +676,7 @@ export const useCartStore = create<StoreState>((set, get) => ({
       centralInteligencia,
       agentes,
       coprodutor,
+      servicosExtras,
       descontoMensal,
       descontoSetup,
     } = carrinho;
@@ -652,6 +698,7 @@ export const useCartStore = create<StoreState>((set, get) => ({
       centralInteligenciaExtras: 0, // V0.14
       agentesSetup: 0,
       agentesMensal: 0,
+      servicosExtrasTotal: 0, // V0.18
       coprodutorNome: "",
       totalSetup: 0,
       totalEntrada: 0,
@@ -727,8 +774,19 @@ export const useCartStore = create<StoreState>((set, get) => ({
     resumo.agentesSetup = agentes.reduce((sum, a) => sum + a.setupTotal, 0);
     resumo.agentesMensal = agentes.reduce((sum, a) => sum + a.mensalTotal, 0);
 
+    // Servicos Extras V0.18
+    if (nivel) {
+      if (servicosExtras.expertPlanning) {
+        resumo.servicosExtrasTotal += SERVICOS_EXTRAS.expertPlanning.precos[nivel];
+      }
+      if (servicosExtras.sessaoMentoriaQtd > 0) {
+        resumo.servicosExtrasTotal +=
+          SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd;
+      }
+    }
+
     // Totais (antes do desconto)
-    resumo.totalSetup = resumo.agentesSetup + resumo.centralInteligenciaSetup;
+    resumo.totalSetup = resumo.agentesSetup + resumo.centralInteligenciaSetup + resumo.servicosExtrasTotal;
     resumo.totalEntrada = resumo.pacoteEntrada + resumo.techAvulsaEntrada;
     resumo.subtotalSetup = resumo.totalSetup + resumo.totalEntrada; // V0.14: investimento inicial antes do desconto
     resumo.subtotalMensal =
@@ -871,6 +929,7 @@ Economia: R$ ${economia.toLocaleString("pt-BR")}/mês`,
       carrinho: {
         ...initialCarrinho,
         centralInteligencia: { ...initialCentralInteligencia },
+        servicosExtras: { ...initialServicosExtras }, // V0.18
         descontoMensal: { ...initialDesconto },
         descontoSetup: { ...initialDesconto },
       },

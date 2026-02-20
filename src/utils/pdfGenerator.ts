@@ -4,6 +4,7 @@ import { formatCurrency, formatDate } from "./formatting";
 import { modalidades, niveisMap } from "@/data/modalidades";
 import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
 import { getPilaresParaModalidadeENivel } from "@/data/entregaveis";
+import { SERVICOS_EXTRAS } from "@/data/servicosExtras";
 
 const COLORS = {
   grafite: [34, 34, 34] as [number, number, number],
@@ -25,7 +26,7 @@ export async function generateProposalPDF(proposta: Proposta) {
   let y = 0;
 
   const { carrinho, resumo, cliente, consultor } = proposta;
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, centralInteligencia, agentes, coprodutor, descontoMensal, descontoSetup } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, centralInteligencia, agentes, coprodutor, servicosExtras, descontoMensal, descontoSetup } = carrinho;
 
   // Helper function to strip emojis for PDF (jsPDF doesn't render emojis well)
   function stripEmoji(text: string): string {
@@ -523,6 +524,47 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 4;
   }
 
+  // Servicos Extras V0.18
+  if (resumo.servicosExtrasTotal > 0 && nivel) {
+    checkPageBreak(35);
+    doc.setFillColor(255, 237, 213); // Light orange
+    doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
+    doc.setFontSize(10);
+    doc.setTextColor(...COLORS.grafite);
+    doc.setFont("helvetica", "bold");
+    doc.text(
+      `${sectionNum}. SERVICOS EXTRAS`,
+      margin + 3,
+      y + 4
+    );
+    y += 14;
+    sectionNum++;
+
+    bodyText("Servicos adicionais para potencializar os resultados do seu negocio de conhecimento.", false, 3);
+    y += 2;
+
+    if (servicosExtras.expertPlanning) {
+      bodyText(SERVICOS_EXTRAS.expertPlanning.nome, true, 3);
+      bodyText(SERVICOS_EXTRAS.expertPlanning.descricao, false, 6);
+      bodyText(`Investimento: ${formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[nivel])} (unico)`, true, 6);
+      y += 2;
+    }
+
+    if (servicosExtras.sessaoMentoriaQtd > 0) {
+      bodyText(`${servicosExtras.sessaoMentoriaQtd}x ${SERVICOS_EXTRAS.sessaoMentoria.nome}`, true, 3);
+      bodyText(SERVICOS_EXTRAS.sessaoMentoria.descricao, false, 6);
+      bodyText(
+        `Investimento: ${servicosExtras.sessaoMentoriaQtd}x ${formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel])} = ${formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd)}`,
+        true,
+        6
+      );
+      y += 2;
+    }
+
+    bodyText(`Total Servicos Extras: ${formatCurrency(resumo.servicosExtrasTotal)}`, true, 3);
+    y += 4;
+  }
+
   // ========= ENTREGAVEIS DO PACOTE =========
   if (nivel && modalidade) {
     y += 2;
@@ -629,6 +671,7 @@ export async function generateProposalPDF(proposta: Proposta) {
   let boxHeight = 16; // Reduced base
   if (resumo.subtotalSetup > 0) boxHeight += 18; // Reduced from 24
   if (resumo.centralInteligenciaSetup > 0) boxHeight += 5; // Reduced from 6
+  if (resumo.servicosExtrasTotal > 0) boxHeight += (servicosExtras.expertPlanning ? 5 : 0) + (servicosExtras.sessaoMentoriaQtd > 0 ? 5 : 0); // V0.18
   if (resumo.valorDescontoSetup > 0) boxHeight += 10; // Reduced from 12
   if (resumo.totalUpgradesMensal > 0) boxHeight += 5;
   if (resumo.agentesMensal > 0) boxHeight += 5;
@@ -685,6 +728,30 @@ export async function generateProposalPDF(proposta: Proposta) {
       doc.setFont("helvetica", "bold");
       doc.text(formatCurrency(resumo.agentesSetup), boxRight, y + 3, { align: "right" });
       y += 5;
+    }
+
+    // Servicos Extras V0.18
+    if (resumo.servicosExtrasTotal > 0 && nivel) {
+      if (servicosExtras.expertPlanning) {
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.cinza);
+        doc.setFont("helvetica", "normal");
+        doc.text("Expert Planning Anual:", boxMargin, y + 3);
+        doc.setTextColor(180, 80, 0); // orange
+        doc.setFont("helvetica", "bold");
+        doc.text(formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[nivel]), boxRight, y + 3, { align: "right" });
+        y += 5;
+      }
+      if (servicosExtras.sessaoMentoriaQtd > 0) {
+        doc.setFontSize(8);
+        doc.setTextColor(...COLORS.cinza);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Sessoes de Mentoria (${servicosExtras.sessaoMentoriaQtd}x):`, boxMargin, y + 3);
+        doc.setTextColor(180, 80, 0); // orange
+        doc.setFont("helvetica", "bold");
+        doc.text(formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd), boxRight, y + 3, { align: "right" });
+        y += 5;
+      }
     }
 
     // Desconto Setup V0.16: Compact

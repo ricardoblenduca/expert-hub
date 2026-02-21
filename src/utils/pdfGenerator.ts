@@ -524,8 +524,11 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 4;
   }
 
-  // Servicos Extras V0.18
-  if (resumo.servicosExtrasTotal > 0 && nivel) {
+  // Servicos Extras V0.18/V0.19: Updated to support avulso mode
+  const extrasNivel = nivel || servicosExtras.expertPlanningNivel;
+  const hasExtras = resumo.servicosExtrasTotal > 0 && (extrasNivel || servicosExtras.sessaoMentoriaQtd > 0);
+
+  if (hasExtras) {
     checkPageBreak(35);
     doc.setFillColor(255, 237, 213); // Light orange
     doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
@@ -533,7 +536,7 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
     doc.text(
-      `${sectionNum}. SERVICOS EXTRAS`,
+      `${sectionNum}. SERVICOS ADICIONAIS`,
       margin + 3,
       y + 4
     );
@@ -543,25 +546,42 @@ export async function generateProposalPDF(proposta: Proposta) {
     bodyText("Servicos adicionais para potencializar os resultados do seu negocio de conhecimento.", false, 3);
     y += 2;
 
-    if (servicosExtras.expertPlanning) {
-      bodyText(SERVICOS_EXTRAS.expertPlanning.nome, true, 3);
+    // V0.19: Expert Planning with nivel tag
+    if (servicosExtras.expertPlanning && extrasNivel) {
+      const planningNivel = extrasNivel as NivelId;
+      bodyText(`${SERVICOS_EXTRAS.expertPlanning.nome} [${planningNivel.toUpperCase()}]`, true, 3);
       bodyText(SERVICOS_EXTRAS.expertPlanning.descricao, false, 6);
-      bodyText(`Investimento: ${formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[nivel])} (unico)`, true, 6);
+      bodyText(`Investimento: ${formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[planningNivel])} (unico)`, true, 6);
       y += 2;
     }
 
+    // V0.19: Sessao Mentoria with unit price for avulso
     if (servicosExtras.sessaoMentoriaQtd > 0) {
+      const mentoriaPreco = nivel
+        ? SERVICOS_EXTRAS.sessaoMentoria.precos[nivel]
+        : 750; // avulso price
+      const mentoriaTotal = mentoriaPreco * servicosExtras.sessaoMentoriaQtd;
+
       bodyText(`${servicosExtras.sessaoMentoriaQtd}x ${SERVICOS_EXTRAS.sessaoMentoria.nome}`, true, 3);
       bodyText(SERVICOS_EXTRAS.sessaoMentoria.descricao, false, 6);
-      bodyText(
-        `Investimento: ${servicosExtras.sessaoMentoriaQtd}x ${formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel])} = ${formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd)}`,
-        true,
-        6
-      );
+
+      if (!nivel) {
+        bodyText(
+          `Investimento: ${servicosExtras.sessaoMentoriaQtd}x R$ 750,00 (valor avulso) = ${formatCurrency(mentoriaTotal)}`,
+          true,
+          6
+        );
+      } else {
+        bodyText(
+          `Investimento: ${servicosExtras.sessaoMentoriaQtd}x ${formatCurrency(mentoriaPreco)} = ${formatCurrency(mentoriaTotal)}`,
+          true,
+          6
+        );
+      }
       y += 2;
     }
 
-    bodyText(`Total Servicos Extras: ${formatCurrency(resumo.servicosExtrasTotal)}`, true, 3);
+    bodyText(`Total Servicos Adicionais: ${formatCurrency(resumo.servicosExtrasTotal)}`, true, 3);
     y += 4;
   }
 
@@ -671,7 +691,7 @@ export async function generateProposalPDF(proposta: Proposta) {
   let boxHeight = 16; // Reduced base
   if (resumo.subtotalSetup > 0) boxHeight += 18; // Reduced from 24
   if (resumo.centralInteligenciaSetup > 0) boxHeight += 5; // Reduced from 6
-  if (resumo.servicosExtrasTotal > 0) boxHeight += (servicosExtras.expertPlanning ? 5 : 0) + (servicosExtras.sessaoMentoriaQtd > 0 ? 5 : 0); // V0.18
+  if (resumo.servicosExtrasTotal > 0 && (nivel || servicosExtras.expertPlanningNivel || servicosExtras.sessaoMentoriaQtd > 0)) boxHeight += (servicosExtras.expertPlanning ? 5 : 0) + (servicosExtras.sessaoMentoriaQtd > 0 ? 5 : 0); // V0.18/V0.19
   if (resumo.valorDescontoSetup > 0) boxHeight += 10; // Reduced from 12
   if (resumo.totalUpgradesMensal > 0) boxHeight += 5;
   if (resumo.agentesMensal > 0) boxHeight += 5;
@@ -730,26 +750,34 @@ export async function generateProposalPDF(proposta: Proposta) {
       y += 5;
     }
 
-    // Servicos Extras V0.18
-    if (resumo.servicosExtrasTotal > 0 && nivel) {
-      if (servicosExtras.expertPlanning) {
+    // Servicos Extras V0.18/V0.19: Updated for avulso mode
+    if (resumo.servicosExtrasTotal > 0 && (nivel || servicosExtras.expertPlanningNivel || servicosExtras.sessaoMentoriaQtd > 0)) {
+      const investExtrasNivel = nivel || servicosExtras.expertPlanningNivel;
+
+      if (servicosExtras.expertPlanning && investExtrasNivel) {
         doc.setFontSize(8);
         doc.setTextColor(...COLORS.cinza);
         doc.setFont("helvetica", "normal");
-        doc.text("Expert Planning Anual:", boxMargin, y + 3);
+        doc.text(`Expert Planning [${investExtrasNivel.toUpperCase()}]:`, boxMargin, y + 3);
         doc.setTextColor(180, 80, 0); // orange
         doc.setFont("helvetica", "bold");
-        doc.text(formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[nivel]), boxRight, y + 3, { align: "right" });
+        doc.text(formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[investExtrasNivel as NivelId]), boxRight, y + 3, { align: "right" });
         y += 5;
       }
       if (servicosExtras.sessaoMentoriaQtd > 0) {
+        const mentoriaPrecoInvest = nivel
+          ? SERVICOS_EXTRAS.sessaoMentoria.precos[nivel]
+          : 750;
         doc.setFontSize(8);
         doc.setTextColor(...COLORS.cinza);
         doc.setFont("helvetica", "normal");
-        doc.text(`Sessoes de Mentoria (${servicosExtras.sessaoMentoriaQtd}x):`, boxMargin, y + 3);
+        const mentoriaLabel = !nivel
+          ? `Sessoes (${servicosExtras.sessaoMentoriaQtd}x R$750):`
+          : `Sessoes de Mentoria (${servicosExtras.sessaoMentoriaQtd}x):`;
+        doc.text(mentoriaLabel, boxMargin, y + 3);
         doc.setTextColor(180, 80, 0); // orange
         doc.setFont("helvetica", "bold");
-        doc.text(formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd), boxRight, y + 3, { align: "right" });
+        doc.text(formatCurrency(mentoriaPrecoInvest * servicosExtras.sessaoMentoriaQtd), boxRight, y + 3, { align: "right" });
         y += 5;
       }
     }

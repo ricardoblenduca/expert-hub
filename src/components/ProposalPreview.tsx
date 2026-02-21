@@ -778,26 +778,45 @@ export default function ProposalPreview() {
                       </div>
                     )}
 
-                    {/* Servicos Extras V0.18 */}
-                    {resumo.servicosExtrasTotal > 0 && nivel && (
-                      <div>
-                        {servicosExtras.expertPlanning && (
-                          <div className="flex justify-between text-sm font-kanit">
-                            <span className="text-blenduca-cinza-medio">
-                              📋 {SERVICOS_EXTRAS.expertPlanning.nome}:
+                    {/* Servicos Extras V0.18/V0.19: Updated to support avulso mode */}
+                    {resumo.servicosExtrasTotal > 0 && (nivel || servicosExtras.expertPlanningNivel || servicosExtras.sessaoMentoriaQtd > 0) && (
+                      <div className="bg-amber-50/50 rounded-lg p-3 -mx-2 border-l-4 border-amber-400">
+                        <p className="font-kanit font-semibold text-xs uppercase tracking-wide text-amber-700 mb-2">
+                          Servicos Adicionais
+                        </p>
+                        {servicosExtras.expertPlanning && (nivel || servicosExtras.expertPlanningNivel) && (
+                          <div className="flex justify-between text-sm font-kanit mb-1">
+                            <span className="text-blenduca-cinza-medio flex items-center gap-2">
+                              📋 Expert Planning Anual
+                              <span className="px-1.5 py-0.5 bg-blenduca-vermelho text-white text-[9px] font-bold rounded uppercase">
+                                {(nivel || servicosExtras.expertPlanningNivel)!.toUpperCase()}
+                              </span>
                             </span>
-                            <span className="font-medium text-orange-700">
-                              {formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[nivel])}
+                            <span className="font-semibold text-orange-700">
+                              {formatCurrency(
+                                SERVICOS_EXTRAS.expertPlanning.precos[
+                                  (nivel || servicosExtras.expertPlanningNivel)!
+                                ]
+                              )}
                             </span>
                           </div>
                         )}
                         {servicosExtras.sessaoMentoriaQtd > 0 && (
                           <div className="flex justify-between text-sm font-kanit">
                             <span className="text-blenduca-cinza-medio">
-                              🎯 {servicosExtras.sessaoMentoriaQtd}x {SERVICOS_EXTRAS.sessaoMentoria.nome}:
+                              🎯 {servicosExtras.sessaoMentoriaQtd}x Sessao Individual
+                              {!nivel && (
+                                <span className="text-xs text-blenduca-cinza-medio ml-1">
+                                  (R$ 750/sessao)
+                                </span>
+                              )}
                             </span>
                             <span className="font-medium text-orange-700">
-                              {formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd)}
+                              {formatCurrency(
+                                nivel
+                                  ? SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd
+                                  : 750 * servicosExtras.sessaoMentoriaQtd
+                              )}
                             </span>
                           </div>
                         )}

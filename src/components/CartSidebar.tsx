@@ -244,37 +244,59 @@ export default function CartSidebar() {
               </div>
             )}
 
-            {/* Servicos Extras - V0.18 */}
-            {hasServicosExtras && nivel && (
+            {/* Servicos Extras - V0.18/V0.19: Updated to support avulso mode */}
+            {hasServicosExtras && (nivel || servicosExtras.expertPlanningNivel || servicosExtras.sessaoMentoriaQtd > 0) && (
               <div className="bg-orange-50/50 border border-orange-100 rounded-lg p-4">
                 <h3 className="font-play text-[10px] font-bold tracking-wider uppercase text-orange-700 mb-3">
-                  ✨ SERVICOS EXTRAS
+                  ✨ SERVICOS ADICIONAIS
                 </h3>
 
                 <div className="space-y-2">
-                  {servicosExtras.expertPlanning && (
-                    <div className="flex items-center justify-between text-xs font-kanit">
-                      <span className="text-blenduca-grafite">
-                        📋 {SERVICOS_EXTRAS.expertPlanning.nome}
-                      </span>
-                      <span className="font-medium text-blenduca-grafite">
-                        {formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[nivel])}
-                      </span>
+                  {servicosExtras.expertPlanning && (nivel || servicosExtras.expertPlanningNivel) && (
+                    <div className="bg-amber-50 rounded-lg p-2 border-l-4 border-amber-400">
+                      <div className="flex items-center justify-between text-xs font-kanit">
+                        <div className="flex items-center gap-2">
+                          <span className="text-blenduca-grafite">
+                            📋 Expert Planning Anual
+                          </span>
+                          <span className="px-1.5 py-0.5 bg-blenduca-vermelho text-white text-[9px] font-bold rounded uppercase">
+                            {(nivel || servicosExtras.expertPlanningNivel)!.toUpperCase()}
+                          </span>
+                        </div>
+                        <span className="font-semibold text-blenduca-grafite">
+                          {formatCurrency(
+                            SERVICOS_EXTRAS.expertPlanning.precos[
+                              (nivel || servicosExtras.expertPlanningNivel)!
+                            ]
+                          )}
+                        </span>
+                      </div>
                     </div>
                   )}
                   {servicosExtras.sessaoMentoriaQtd > 0 && (
-                    <div className="flex items-center justify-between text-xs font-kanit">
-                      <span className="text-blenduca-grafite">
-                        🎯 {servicosExtras.sessaoMentoriaQtd}x {SERVICOS_EXTRAS.sessaoMentoria.nome}
-                      </span>
-                      <span className="font-medium text-blenduca-grafite">
-                        {formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd)}
-                      </span>
+                    <div className="flex flex-col text-xs font-kanit">
+                      <div className="flex items-center justify-between">
+                        <span className="text-blenduca-grafite">
+                          🎯 {servicosExtras.sessaoMentoriaQtd}x Sessao Individual
+                        </span>
+                        <span className="font-medium text-blenduca-grafite">
+                          {formatCurrency(
+                            nivel
+                              ? SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd
+                              : 750 * servicosExtras.sessaoMentoriaQtd
+                          )}
+                        </span>
+                      </div>
+                      {!nivel && (
+                        <span className="text-[10px] text-blenduca-cinza-medio mt-0.5">
+                          (R$ 750/sessao - valor avulso)
+                        </span>
+                      )}
                     </div>
                   )}
                   <div className="flex items-center justify-between text-xs font-kanit pt-2 border-t border-orange-100">
                     <span className="text-blenduca-cinza-medio">Total extras:</span>
-                    <span className="font-medium text-orange-700">
+                    <span className="font-semibold text-orange-700">
                       {formatCurrency(resumo.servicosExtrasTotal)}
                     </span>
                   </div>

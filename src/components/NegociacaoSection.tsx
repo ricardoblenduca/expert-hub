@@ -20,14 +20,20 @@ export default function NegociacaoSection() {
   const setDescontoMensalMotivo = useCartStore((s) => s.setDescontoMensalMotivo);
   const calcularResumo = useCartStore((s) => s.calcularResumo);
 
-  const { nivel, coprodutor, descontoMensal, descontoSetup } = carrinho;
+  const { modalidade, nivel, coprodutor, descontoMensal, descontoSetup } = carrinho;
   const resumo = calcularResumo();
 
   // Co-produtor is only available for Business and Scale
   const coprodutorDisponivel = nivel === "business" || nivel === "scale";
 
   const handleBack = () => {
-    setStep("extras");
+    // V0.18: Only go to extras for standalone flows
+    // For program flows, extras are shown in customizacoes/adicionar_tech
+    if (modalidade) {
+      setStep("agentes");
+    } else {
+      setStep("extras");
+    }
   };
 
   const handleContinue = () => {

@@ -13,21 +13,23 @@ const STEPS: { id: Step; label: string; num: number }[] = [
   { id: "preview", label: "Proposta", num: 7 },
 ];
 
-// Steps for technology-only flow
+// Steps for technology-only flow (V0.18: added extras step)
 const TECH_STEPS: { id: Step; label: string; num: number }[] = [
   { id: "tecnologia", label: "Tecnologia", num: 1 },
   { id: "agentes", label: "Agentes", num: 2 },
+  { id: "extras", label: "Extras", num: 3 },
+  { id: "negociacao", label: "Negociacao", num: 4 },
+  { id: "cliente", label: "Cliente", num: 5 },
+  { id: "preview", label: "Proposta", num: 6 },
+];
+
+// Steps for agents-only flow (V0.18: added extras step)
+const AGENT_STEPS: { id: Step; label: string; num: number }[] = [
+  { id: "agentes", label: "Agentes", num: 1 },
+  { id: "extras", label: "Extras", num: 2 },
   { id: "negociacao", label: "Negociacao", num: 3 },
   { id: "cliente", label: "Cliente", num: 4 },
   { id: "preview", label: "Proposta", num: 5 },
-];
-
-// Steps for agents-only flow
-const AGENT_STEPS: { id: Step; label: string; num: number }[] = [
-  { id: "agentes", label: "Agentes", num: 1 },
-  { id: "negociacao", label: "Negociacao", num: 2 },
-  { id: "cliente", label: "Cliente", num: 3 },
-  { id: "preview", label: "Proposta", num: 4 },
 ];
 
 export default function Header() {
@@ -98,11 +100,13 @@ export default function Header() {
                   }
                   if (carrinho.tipoProposta === "tecnologia") {
                     if (s.id === "agentes") return hasTech;
+                    if (s.id === "extras") return hasTech || hasAgents;
                     if (s.id === "negociacao") return hasTech || hasAgents;
                     if (s.id === "cliente") return hasTech || hasAgents;
                     if (s.id === "preview") return false;
                   }
                   if (carrinho.tipoProposta === "agentes") {
+                    if (s.id === "extras") return true;
                     if (s.id === "negociacao") return true;
                     if (s.id === "cliente") return true;
                     if (s.id === "preview") return false;

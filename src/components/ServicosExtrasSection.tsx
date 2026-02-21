@@ -3,25 +3,33 @@
 import { useCartStore } from "@/store/useCartStore";
 import { formatCurrency } from "@/utils/formatting";
 import { SERVICOS_EXTRAS } from "@/data/servicosExtras";
-import { niveisMap } from "@/data/modalidades";
+import { niveis, niveisMap } from "@/data/modalidades";
+import type { NivelId } from "@/types";
+
+// Preco fixo para mentoria avulsa (sem programa)
+const MENTORIA_AVULSO_PRECO = 750;
 
 export default function ServicosExtrasSection() {
   const carrinho = useCartStore((s) => s.carrinho);
   const setExpertPlanning = useCartStore((s) => s.setExpertPlanning);
+  const setExpertPlanningNivel = useCartStore((s) => s.setExpertPlanningNivel);
   const setSessaoMentoriaQtd = useCartStore((s) => s.setSessaoMentoriaQtd);
   const setStep = useCartStore((s) => s.setStep);
   const calcularResumo = useCartStore((s) => s.calcularResumo);
 
-  const { nivel, tipoProposta, modalidade, servicosExtras } = carrinho;
-  const nivelInfo = nivel ? niveisMap[nivel] : null;
+  const { nivel, servicosExtras } = carrinho;
   const resumo = calcularResumo();
 
-  const expertPlanningPreco = nivel
-    ? SERVICOS_EXTRAS.expertPlanning.precos[nivel]
+  // Para Expert Planning: usa nivel do programa ou o nivel selecionado para avulso
+  const planningNivel = nivel || servicosExtras.expertPlanningNivel;
+  const expertPlanningPreco = planningNivel
+    ? SERVICOS_EXTRAS.expertPlanning.precos[planningNivel]
     : null;
+
+  // Para Mentoria: usa nivel do programa ou preco fixo avulso
   const sessaoMentoriaPreco = nivel
     ? SERVICOS_EXTRAS.sessaoMentoria.precos[nivel]
-    : null;
+    : MENTORIA_AVULSO_PRECO;
 
   const handleBack = () => {
     setStep("agentes");
@@ -65,39 +73,18 @@ export default function ServicosExtrasSection() {
           </div>
         </div>
 
-        {/* Level badge */}
-        {nivelInfo && (
+        {/* Avulso badge */}
+        {!nivel && (
           <div className="ml-11">
-            <span
-              className="inline-flex items-center px-3 py-1 rounded-full text-xs font-kanit font-semibold text-white"
-              style={{ backgroundColor: nivelInfo.cor }}
-            >
-              {nivelInfo.nome}
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-kanit font-semibold bg-orange-100 text-orange-700">
+              Contratacao Avulsa
             </span>
             <span className="ml-2 font-kanit text-xs text-blenduca-cinza-medio">
-              Os precos variam por nivel de programa
+              Precos especiais para contratacao sem programa
             </span>
           </div>
         )}
       </div>
-
-      {/* No nivel selected warning */}
-      {!nivel && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-6">
-          <div className="flex items-start gap-3">
-            <span className="text-2xl">⚠️</span>
-            <div>
-              <h3 className="font-kanit font-semibold text-amber-800 mb-1">
-                Nivel nao selecionado
-              </h3>
-              <p className="font-kanit text-sm text-amber-700">
-                Os servicos extras tem precos que variam conforme o nivel do
-                programa. Selecione um programa para ver os precos especificos.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Services Cards */}
       <div className="space-y-4 mb-6">
@@ -144,6 +131,35 @@ export default function ServicosExtrasSection() {
                     </span>
                   </div>
 
+                  {/* Nivel selector for avulso */}
+                  {!nivel && (
+                    <div className="mb-3">
+                      <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2">
+                        Selecione o nivel para precificacao:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {niveis.map((n) => (
+                          <button
+                            key={n.id}
+                            onClick={() => setExpertPlanningNivel(n.id)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-kanit font-semibold transition-all ${
+                              servicosExtras.expertPlanningNivel === n.id
+                                ? "text-white"
+                                : "bg-gray-100 text-blenduca-grafite hover:bg-gray-200"
+                            }`}
+                            style={
+                              servicosExtras.expertPlanningNivel === n.id
+                                ? { backgroundColor: n.cor }
+                                : {}
+                            }
+                          >
+                            {n.nome} - {formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[n.id])}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {expertPlanningPreco !== null && (
                     <p className="font-kanit text-sm text-blenduca-cinza-medio">
                       Investimento:{" "}
@@ -156,14 +172,15 @@ export default function ServicosExtrasSection() {
                 </div>
               </div>
 
-              {/* Toggle */}
+              {/* Toggle - only enabled when nivel is set or expertPlanningNivel is selected */}
               <button
-                onClick={() =>
-                  setExpertPlanning(!servicosExtras.expertPlanning)
-                }
+                onClick={() => setExpertPlanning(!servicosExtras.expertPlanning)}
+                disabled={!nivel && !servicosExtras.expertPlanningNivel}
                 className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors shrink-0 ${
                   servicosExtras.expertPlanning
                     ? "bg-blenduca-vermelho"
+                    : !nivel && !servicosExtras.expertPlanningNivel
+                    ? "bg-gray-100 cursor-not-allowed"
                     : "bg-gray-200"
                 }`}
                 role="switch"
@@ -217,6 +234,11 @@ export default function ServicosExtrasSection() {
                   <span className="px-2 py-0.5 bg-blenduca-vermelho/10 text-blenduca-vermelho text-[10px] font-play font-bold tracking-wider rounded-full uppercase">
                     {SERVICOS_EXTRAS.sessaoMentoria.categoria}
                   </span>
+                  {!nivel && (
+                    <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[10px] font-play font-bold tracking-wider rounded-full uppercase">
+                      AVULSO
+                    </span>
+                  )}
                 </div>
 
                 <p className="font-kanit text-sm text-blenduca-cinza-medio mb-3">
@@ -235,15 +257,16 @@ export default function ServicosExtrasSection() {
                   </span>
                 </div>
 
-                {sessaoMentoriaPreco !== null && (
-                  <p className="font-kanit text-sm text-blenduca-cinza-medio mb-4">
-                    Preco por sessao:{" "}
-                    <strong className="text-blenduca-grafite text-base">
-                      {formatCurrency(sessaoMentoriaPreco)}
-                    </strong>
-                    <span className="text-xs ml-1">/ sessao</span>
-                  </p>
-                )}
+                <p className="font-kanit text-sm text-blenduca-cinza-medio mb-4">
+                  Preco por sessao:{" "}
+                  <strong className="text-blenduca-grafite text-base">
+                    {formatCurrency(sessaoMentoriaPreco)}
+                  </strong>
+                  <span className="text-xs ml-1">/ sessao</span>
+                  {!nivel && (
+                    <span className="text-xs ml-2 text-orange-600">(valor avulso)</span>
+                  )}
+                </p>
 
                 {/* Quantity selector */}
                 <div className="flex items-center gap-4">
@@ -253,9 +276,7 @@ export default function ServicosExtrasSection() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() =>
-                        setSessaoMentoriaQtd(
-                          servicosExtras.sessaoMentoriaQtd - 1
-                        )
+                        setSessaoMentoriaQtd(servicosExtras.sessaoMentoriaQtd - 1)
                       }
                       disabled={servicosExtras.sessaoMentoriaQtd === 0}
                       className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center font-kanit font-bold text-blenduca-grafite"
@@ -267,9 +288,7 @@ export default function ServicosExtrasSection() {
                     </span>
                     <button
                       onClick={() =>
-                        setSessaoMentoriaQtd(
-                          servicosExtras.sessaoMentoriaQtd + 1
-                        )
+                        setSessaoMentoriaQtd(servicosExtras.sessaoMentoriaQtd + 1)
                       }
                       disabled={servicosExtras.sessaoMentoriaQtd >= 20}
                       className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center font-kanit font-bold text-blenduca-grafite"
@@ -282,21 +301,18 @@ export default function ServicosExtrasSection() {
             </div>
 
             {/* Selected state */}
-            {servicosExtras.sessaoMentoriaQtd > 0 &&
-              sessaoMentoriaPreco !== null && (
-                <div className="mt-4 pt-4 border-t border-blenduca-vermelho/20 flex items-center justify-between">
-                  <span className="font-kanit text-sm text-blenduca-vermelho font-semibold">
-                    ✓ {servicosExtras.sessaoMentoriaQtd}x sessao
-                    {servicosExtras.sessaoMentoriaQtd > 1 ? "es" : ""} adicionada
-                    {servicosExtras.sessaoMentoriaQtd > 1 ? "s" : ""}
-                  </span>
-                  <span className="font-kanit font-bold text-blenduca-grafite">
-                    {formatCurrency(
-                      sessaoMentoriaPreco * servicosExtras.sessaoMentoriaQtd
-                    )}
-                  </span>
-                </div>
-              )}
+            {servicosExtras.sessaoMentoriaQtd > 0 && (
+              <div className="mt-4 pt-4 border-t border-blenduca-vermelho/20 flex items-center justify-between">
+                <span className="font-kanit text-sm text-blenduca-vermelho font-semibold">
+                  ✓ {servicosExtras.sessaoMentoriaQtd}x sessao
+                  {servicosExtras.sessaoMentoriaQtd > 1 ? "es" : ""} adicionada
+                  {servicosExtras.sessaoMentoriaQtd > 1 ? "s" : ""}
+                </span>
+                <span className="font-kanit font-bold text-blenduca-grafite">
+                  {formatCurrency(sessaoMentoriaPreco * servicosExtras.sessaoMentoriaQtd)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

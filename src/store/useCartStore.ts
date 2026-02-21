@@ -90,6 +90,7 @@ interface StoreState {
 
   // Servicos Extras V0.18
   setExpertPlanning: (ativo: boolean) => void;
+  setExpertPlanningNivel: (nivel: NivelId | null) => void;
   setSessaoMentoriaQtd: (qtd: number) => void;
   resetServicosExtras: () => void;
 
@@ -168,8 +169,12 @@ const initialCentralInteligencia = {
 
 const initialServicosExtras: ServicosExtrasConfig = {
   expertPlanning: false,
+  expertPlanningNivel: null, // V0.18: Nivel para avulso
   sessaoMentoriaQtd: 0,
 };
+
+// V0.18: Preco fixo de mentoria avulsa (sem programa)
+const MENTORIA_AVULSO_PRECO = 750;
 
 const initialCarrinho: CarrinhoState = {
   tipoProposta: null,
@@ -508,6 +513,17 @@ export const useCartStore = create<StoreState>((set, get) => ({
       },
     })),
 
+  setExpertPlanningNivel: (nivel) =>
+    set((state) => ({
+      carrinho: {
+        ...state.carrinho,
+        servicosExtras: {
+          ...state.carrinho.servicosExtras,
+          expertPlanningNivel: nivel,
+        },
+      },
+    })),
+
   setSessaoMentoriaQtd: (qtd) =>
     set((state) => ({
       carrinho: {
@@ -774,15 +790,20 @@ export const useCartStore = create<StoreState>((set, get) => ({
     resumo.agentesSetup = agentes.reduce((sum, a) => sum + a.setupTotal, 0);
     resumo.agentesMensal = agentes.reduce((sum, a) => sum + a.mensalTotal, 0);
 
-    // Servicos Extras V0.18
-    if (nivel) {
-      if (servicosExtras.expertPlanning) {
-        resumo.servicosExtrasTotal += SERVICOS_EXTRAS.expertPlanning.precos[nivel];
+    // Servicos Extras V0.18 (com suporte a avulso)
+    if (servicosExtras.expertPlanning) {
+      // Expert Planning: usa nivel do programa, ou nivel selecionado para avulso
+      const planningNivel = nivel || servicosExtras.expertPlanningNivel;
+      if (planningNivel) {
+        resumo.servicosExtrasTotal += SERVICOS_EXTRAS.expertPlanning.precos[planningNivel];
       }
-      if (servicosExtras.sessaoMentoriaQtd > 0) {
-        resumo.servicosExtrasTotal +=
-          SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd;
-      }
+    }
+    if (servicosExtras.sessaoMentoriaQtd > 0) {
+      // Mentoria: usa nivel do programa, ou preco fixo avulso (R$ 750)
+      const mentoriaPreco = nivel
+        ? SERVICOS_EXTRAS.sessaoMentoria.precos[nivel]
+        : MENTORIA_AVULSO_PRECO;
+      resumo.servicosExtrasTotal += mentoriaPreco * servicosExtras.sessaoMentoriaQtd;
     }
 
     // Totais (antes do desconto)

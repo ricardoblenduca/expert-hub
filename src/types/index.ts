@@ -407,6 +407,7 @@ export interface CentralInteligenciaConfig {
 
 export interface ServicosExtrasConfig {
   expertPlanning: boolean; // Expert Planning Anual selecionado
+  expertPlanningNivel: NivelId | null; // Nivel para precificacao quando avulso (sem programa)
   sessaoMentoriaQtd: number; // Quantidade de sessoes individuais de mentoria
 }
 

@@ -71,8 +71,13 @@ export default function AgentesSection() {
   };
 
   const handleContinue = () => {
-    // V0.18: Go to extras step after agentes
-    setStep("extras");
+    // V0.18: Only show extras step for standalone flows (no program selected)
+    // For program flows, extras are already shown in customizacoes/adicionar_tech
+    if (modalidade) {
+      setStep("negociacao");
+    } else {
+      setStep("extras");
+    }
   };
 
   const isAgenteAdicionado = (agenteId: string) => {

@@ -1,10 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useCartStore } from "@/store/useCartStore";
 import { formatCurrency } from "@/utils/formatting";
 import { SERVICOS_EXTRAS } from "@/data/servicosExtras";
-import { niveis, niveisMap } from "@/data/modalidades";
-import type { NivelId } from "@/types";
+import { niveis } from "@/data/modalidades";
 
 // Preco fixo para mentoria avulsa (sem programa)
 const MENTORIA_AVULSO_PRECO = 750;
@@ -14,11 +14,16 @@ export default function ServicosExtrasSection() {
   const setExpertPlanning = useCartStore((s) => s.setExpertPlanning);
   const setExpertPlanningNivel = useCartStore((s) => s.setExpertPlanningNivel);
   const setSessaoMentoriaQtd = useCartStore((s) => s.setSessaoMentoriaQtd);
+  const resetServicosExtras = useCartStore((s) => s.resetServicosExtras);
   const setStep = useCartStore((s) => s.setStep);
   const calcularResumo = useCartStore((s) => s.calcularResumo);
+  const addToast = useCartStore((s) => s.addToast);
 
   const { nivel, servicosExtras } = carrinho;
   const resumo = calcularResumo();
+
+  // Validation errors
+  const [erros, setErros] = useState<string[]>([]);
 
   // Para Expert Planning: usa nivel do programa ou o nivel selecionado para avulso
   const planningNivel = nivel || servicosExtras.expertPlanningNivel;
@@ -35,9 +40,42 @@ export default function ServicosExtrasSection() {
     setStep("agentes");
   };
 
+  // V0.19: Validation before advancing
+  const validarServicosExtras = (): string[] => {
+    const validationErrors: string[] = [];
+
+    // If Expert Planning is active in avulso mode, must have nivel selected
+    if (servicosExtras.expertPlanning && !nivel && !servicosExtras.expertPlanningNivel) {
+      validationErrors.push("Selecione o nivel do Expert Planning");
+    }
+
+    // If Sessao Mentoria is active, must have quantity >= 1
+    if (servicosExtras.sessaoMentoriaQtd > 0 && servicosExtras.sessaoMentoriaQtd < 1) {
+      validationErrors.push("Selecione ao menos 1 sessao de mentoria");
+    }
+
+    return validationErrors;
+  };
+
   const handleContinue = () => {
+    const validationErrors = validarServicosExtras();
+    if (validationErrors.length > 0) {
+      setErros(validationErrors);
+      validationErrors.forEach((err) => addToast(err, "warning"));
+      return;
+    }
+    setErros([]);
     setStep("negociacao");
   };
+
+  // V0.19: Skip extras entirely
+  const handlePular = () => {
+    resetServicosExtras();
+    setStep("negociacao");
+  };
+
+  const temExtrasAtivos =
+    servicosExtras.expertPlanning || servicosExtras.sessaoMentoriaQtd > 0;
 
   return (
     <div className="max-w-4xl mx-auto animate-fade-in-up">
@@ -63,28 +101,51 @@ export default function ServicosExtrasSection() {
               />
             </svg>
           </button>
-          <div>
+          <div className="flex-1">
             <h1 className="font-kanit font-bold text-2xl text-blenduca-grafite">
-              Servicos Extras
+              Servicos Adicionais
             </h1>
             <p className="font-kanit text-sm text-blenduca-cinza-medio">
-              Adicione servicos complementares a sua proposta
+              Complemente sua solucao com servicos especializados
+            </p>
+          </div>
+
+          {/* V0.19: Skip button */}
+          <button
+            onClick={handlePular}
+            className="px-4 py-2 text-sm font-kanit text-blenduca-cinza-medio hover:text-blenduca-grafite hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            Pular esta etapa
+          </button>
+        </div>
+      </div>
+
+      {/* V0.19: Alert about avulso prices */}
+      {!nivel && (
+        <div className="mb-6 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <span className="text-lg shrink-0">ℹ️</span>
+          <div>
+            <p className="font-kanit text-sm text-blue-800 font-semibold">
+              Precos avulsos
+            </p>
+            <p className="font-kanit text-xs text-blue-700">
+              Valores para clientes sem pacote de mentoria. Adquira um programa
+              completo para precos especiais.
             </p>
           </div>
         </div>
+      )}
 
-        {/* Avulso badge */}
-        {!nivel && (
-          <div className="ml-11">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-kanit font-semibold bg-orange-100 text-orange-700">
-              Contratacao Avulsa
-            </span>
-            <span className="ml-2 font-kanit text-xs text-blenduca-cinza-medio">
-              Precos especiais para contratacao sem programa
-            </span>
-          </div>
-        )}
-      </div>
+      {/* Validation errors */}
+      {erros.length > 0 && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+          {erros.map((erro, i) => (
+            <p key={i} className="font-kanit text-sm text-red-700">
+              {erro}
+            </p>
+          ))}
+        </div>
+      )}
 
       {/* Services Cards */}
       <div className="space-y-4 mb-6">
@@ -119,33 +180,37 @@ export default function ServicosExtrasSection() {
                     {SERVICOS_EXTRAS.expertPlanning.descricao}
                   </p>
 
+                  {/* V0.19: Feature bullets */}
                   <div className="flex flex-wrap gap-2 mb-3">
-                    <span className="px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
-                      Planejamento 12 meses
+                    <span className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
+                      <span className="text-green-500">✓</span> Diagnostico completo do negocio
                     </span>
-                    <span className="px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
-                      Diagnostico completo
+                    <span className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
+                      <span className="text-green-500">✓</span> Definicao de OKRs e metas anuais
                     </span>
-                    <span className="px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
-                      Plano de acao
+                    <span className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
+                      <span className="text-green-500">✓</span> Roadmap trimestral detalhado
+                    </span>
+                    <span className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
+                      <span className="text-green-500">✓</span> Dashboard de acompanhamento
                     </span>
                   </div>
 
                   {/* Nivel selector for avulso */}
                   {!nivel && (
-                    <div className="mb-3">
-                      <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2">
-                        Selecione o nivel para precificacao:
+                    <div className="mb-3 p-3 bg-gray-50 rounded-lg">
+                      <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2 font-semibold">
+                        Selecione o nivel do planejamento:
                       </p>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                         {niveis.map((n) => (
                           <button
                             key={n.id}
                             onClick={() => setExpertPlanningNivel(n.id)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-kanit font-semibold transition-all ${
+                            className={`px-3 py-2 rounded-lg text-xs font-kanit font-semibold transition-all text-center ${
                               servicosExtras.expertPlanningNivel === n.id
-                                ? "text-white"
-                                : "bg-gray-100 text-blenduca-grafite hover:bg-gray-200"
+                                ? "text-white shadow-md"
+                                : "bg-white border border-gray-200 text-blenduca-grafite hover:border-gray-300"
                             }`}
                             style={
                               servicosExtras.expertPlanningNivel === n.id
@@ -153,7 +218,12 @@ export default function ServicosExtrasSection() {
                                 : {}
                             }
                           >
-                            {n.nome} - {formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[n.id])}
+                            <div className="font-bold uppercase tracking-wide">
+                              {n.nome}
+                            </div>
+                            <div className="mt-0.5">
+                              {formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[n.id])}
+                            </div>
                           </button>
                         ))}
                       </div>
@@ -245,28 +315,43 @@ export default function ServicosExtrasSection() {
                   {SERVICOS_EXTRAS.sessaoMentoria.descricao}
                 </p>
 
+                {/* V0.19: Feature bullets */}
                 <div className="flex flex-wrap gap-2 mb-3">
-                  <span className="px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
-                    Sessao personalizada
+                  <span className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
+                    <span className="text-green-500">✓</span> 60 minutos de mentoria individual
                   </span>
-                  <span className="px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
-                    Estrategia individual
+                  <span className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
+                    <span className="text-green-500">✓</span> Gravacao da sessao incluida
                   </span>
-                  <span className="px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
-                    Acompanhamento direto
+                  <span className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
+                    <span className="text-green-500">✓</span> Material de apoio personalizado
+                  </span>
+                  <span className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-xs font-kanit text-blenduca-grafite">
+                    <span className="text-green-500">✓</span> Follow-up por 7 dias
                   </span>
                 </div>
 
-                <p className="font-kanit text-sm text-blenduca-cinza-medio mb-4">
-                  Preco por sessao:{" "}
-                  <strong className="text-blenduca-grafite text-base">
-                    {formatCurrency(sessaoMentoriaPreco)}
-                  </strong>
-                  <span className="text-xs ml-1">/ sessao</span>
+                {/* Pricing */}
+                <div className="mb-4">
+                  <p className="font-kanit text-sm text-blenduca-cinza-medio">
+                    Preco por sessao:{" "}
+                    <strong className="text-blenduca-grafite text-base">
+                      {formatCurrency(sessaoMentoriaPreco)}
+                    </strong>
+                    <span className="text-xs ml-1">/ sessao</span>
+                    {!nivel && (
+                      <span className="text-xs ml-2 text-orange-600">
+                        (valor avulso)
+                      </span>
+                    )}
+                  </p>
                   {!nivel && (
-                    <span className="text-xs ml-2 text-orange-600">(valor avulso)</span>
+                    <p className="font-kanit text-[10px] text-blenduca-cinza-medio mt-1">
+                      Clientes com programa pagam a partir de{" "}
+                      {formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos.scale)}
+                    </p>
                   )}
-                </p>
+                </div>
 
                 {/* Quantity selector */}
                 <div className="flex items-center gap-4">
@@ -290,7 +375,7 @@ export default function ServicosExtrasSection() {
                       onClick={() =>
                         setSessaoMentoriaQtd(servicosExtras.sessaoMentoriaQtd + 1)
                       }
-                      disabled={servicosExtras.sessaoMentoriaQtd >= 20}
+                      disabled={servicosExtras.sessaoMentoriaQtd >= 50}
                       className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center font-kanit font-bold text-blenduca-grafite"
                     >
                       +
@@ -309,7 +394,9 @@ export default function ServicosExtrasSection() {
                   {servicosExtras.sessaoMentoriaQtd > 1 ? "s" : ""}
                 </span>
                 <span className="font-kanit font-bold text-blenduca-grafite">
-                  {formatCurrency(sessaoMentoriaPreco * servicosExtras.sessaoMentoriaQtd)}
+                  {formatCurrency(
+                    sessaoMentoriaPreco * servicosExtras.sessaoMentoriaQtd
+                  )}
                 </span>
               </div>
             )}
@@ -317,21 +404,44 @@ export default function ServicosExtrasSection() {
         </div>
       </div>
 
-      {/* Summary bar if any extras selected */}
-      {resumo.servicosExtrasTotal > 0 && (
-        <div className="bg-blenduca-vermelho/5 border border-blenduca-vermelho/20 rounded-xl p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-kanit font-semibold text-blenduca-grafite text-sm">
-                Total em Servicos Extras
-              </p>
-              <p className="font-kanit text-xs text-blenduca-cinza-medio">
-                Investimento adicional unico
-              </p>
+      {/* V0.19: Resumo section */}
+      {temExtrasAtivos && resumo.servicosExtrasTotal > 0 && (
+        <div className="bg-blenduca-vermelho/5 border border-blenduca-vermelho/20 rounded-xl p-5 mb-6">
+          <h3 className="font-kanit font-bold text-sm text-blenduca-grafite mb-3">
+            Resumo
+          </h3>
+          <div className="space-y-2">
+            {servicosExtras.expertPlanning && expertPlanningPreco !== null && (
+              <div className="flex items-center justify-between font-kanit text-sm">
+                <span className="text-blenduca-cinza-medio">
+                  Expert Planning{" "}
+                  {planningNivel ? planningNivel.toUpperCase() : ""}
+                </span>
+                <span className="text-blenduca-grafite font-medium">
+                  {formatCurrency(expertPlanningPreco)}
+                </span>
+              </div>
+            )}
+            {servicosExtras.sessaoMentoriaQtd > 0 && (
+              <div className="flex items-center justify-between font-kanit text-sm">
+                <span className="text-blenduca-cinza-medio">
+                  {servicosExtras.sessaoMentoriaQtd}x Sessao Individual
+                </span>
+                <span className="text-blenduca-grafite font-medium">
+                  {formatCurrency(
+                    sessaoMentoriaPreco * servicosExtras.sessaoMentoriaQtd
+                  )}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center justify-between pt-2 border-t border-blenduca-vermelho/20">
+              <span className="font-kanit font-bold text-sm text-blenduca-grafite">
+                Total:
+              </span>
+              <span className="font-kanit font-bold text-xl text-blenduca-vermelho">
+                {formatCurrency(resumo.servicosExtrasTotal)}
+              </span>
             </div>
-            <p className="font-kanit font-bold text-xl text-blenduca-vermelho">
-              {formatCurrency(resumo.servicosExtrasTotal)}
-            </p>
           </div>
         </div>
       )}
@@ -362,7 +472,7 @@ export default function ServicosExtrasSection() {
           onClick={handleContinue}
           className="flex items-center gap-2 px-6 py-3 bg-blenduca-vermelho text-white rounded-xl font-kanit font-semibold text-sm hover:bg-blenduca-vermelho-dark transition-colors shadow-lg shadow-blenduca-vermelho/20"
         >
-          {resumo.servicosExtrasTotal > 0 ? "Continuar com Extras" : "Continuar sem Extras"}
+          Continuar
           <svg
             className="w-4 h-4"
             fill="none"

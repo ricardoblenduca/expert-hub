@@ -583,7 +583,7 @@ export default function AgentesSection() {
           onClick={handleContinue}
           className="flex-1 py-3 rounded-lg bg-blenduca-vermelho text-white font-kanit font-semibold text-sm hover:bg-blenduca-vermelho-dark shadow-lg shadow-blenduca-vermelho/20 transition-all"
         >
-          Continuar para Negociacao →
+          {modalidade ? "Continuar para Negociacao" : "Continuar"} →
         </button>
       </div>
     </div>

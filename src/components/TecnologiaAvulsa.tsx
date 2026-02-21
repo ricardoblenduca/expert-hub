@@ -5,6 +5,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { experienceFlixAvulso, funnelPagesAvulso } from "@/data/tecnologiaAvulsa";
 import { getPilaresParaModalidadeENivel, contarEntregaveisParaModalidade } from "@/data/entregaveis";
 import { niveis, niveisMap, modalidades } from "@/data/modalidades";
+import { SERVICOS_EXTRAS } from "@/data/servicosExtras";
 import { formatCurrency } from "@/utils/formatting";
 import type { NivelId } from "@/types";
 
@@ -29,6 +30,8 @@ export default function TecnologiaAvulsa() {
   const setStep = useCartStore((s) => s.setStep);
   const setExperienceFlixAvulso = useCartStore((s) => s.setExperienceFlixAvulso);
   const setFunnelPagesAvulso = useCartStore((s) => s.setFunnelPagesAvulso);
+  const setExpertPlanning = useCartStore((s) => s.setExpertPlanning);
+  const setSessaoMentoriaQtd = useCartStore((s) => s.setSessaoMentoriaQtd);
 
   // Local state for selections
   const [selectedFunnelPacote, setSelectedFunnelPacote] = useState<string | null>(null);
@@ -41,7 +44,7 @@ export default function TecnologiaAvulsa() {
   const [showFunnelRecursos, setShowFunnelRecursos] = useState<Record<string, boolean>>({});
 
   // Determine context
-  const { modalidade, nivel } = carrinho;
+  const { modalidade, nivel, servicosExtras } = carrinho;
 
   // Current selections
   const selectedFlix = carrinho.tecnologiaAvulsa?.experienceFlix?.plano;
@@ -809,6 +812,114 @@ export default function TecnologiaAvulsa() {
           </div>
         )}
       </div>
+
+      {/* Servicos Extras V0.18 - Only show when nivel is set */}
+      {nivel && (
+        <div className="mb-10 bg-white border border-gray-100 rounded-xl p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">✨</span>
+            <h3 className="font-kanit font-bold text-xl text-blenduca-grafite">
+              Servicos Extras
+            </h3>
+          </div>
+          <p className="font-kanit text-sm text-blenduca-cinza-medio mb-6">
+            Adicione servicos complementares a sua proposta
+          </p>
+
+          <div className="space-y-3">
+            {/* Expert Planning */}
+            <label className={`flex items-start gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+              servicosExtras.expertPlanning
+                ? "border-blenduca-vermelho bg-blenduca-vermelho/5"
+                : "border-gray-100 hover:border-gray-200"
+            }`}>
+              <input
+                type="checkbox"
+                checked={servicosExtras.expertPlanning}
+                onChange={(e) => setExpertPlanning(e.target.checked)}
+                className="mt-1 w-5 h-5 rounded border-gray-300 text-blenduca-vermelho focus:ring-blenduca-vermelho"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg">📋</span>
+                  <span className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                    {SERVICOS_EXTRAS.expertPlanning.nome}
+                  </span>
+                  <span className="px-2 py-0.5 bg-blenduca-vermelho/10 text-blenduca-vermelho text-[10px] font-play font-bold tracking-wider rounded-full uppercase">
+                    {SERVICOS_EXTRAS.expertPlanning.categoria}
+                  </span>
+                </div>
+                <p className="font-kanit text-xs text-blenduca-cinza-medio mb-2">
+                  {SERVICOS_EXTRAS.expertPlanning.descricao}
+                </p>
+                <p className="font-kanit font-semibold text-sm text-blenduca-vermelho">
+                  {formatCurrency(SERVICOS_EXTRAS.expertPlanning.precos[nivel])}
+                  <span className="font-normal text-blenduca-cinza-medio text-xs ml-1">(unico)</span>
+                </p>
+              </div>
+            </label>
+
+            {/* Sessao de Mentoria */}
+            <div className={`p-4 rounded-lg border-2 transition-all ${
+              servicosExtras.sessaoMentoriaQtd > 0
+                ? "border-blenduca-vermelho bg-blenduca-vermelho/5"
+                : "border-gray-100"
+            }`}>
+              <div className="flex items-start gap-4">
+                <div className="w-5 h-5 mt-1 shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">🎯</span>
+                    <span className="font-kanit font-semibold text-sm text-blenduca-grafite">
+                      {SERVICOS_EXTRAS.sessaoMentoria.nome}
+                    </span>
+                    <span className="px-2 py-0.5 bg-blenduca-vermelho/10 text-blenduca-vermelho text-[10px] font-play font-bold tracking-wider rounded-full uppercase">
+                      {SERVICOS_EXTRAS.sessaoMentoria.categoria}
+                    </span>
+                  </div>
+                  <p className="font-kanit text-xs text-blenduca-cinza-medio mb-3">
+                    {SERVICOS_EXTRAS.sessaoMentoria.descricao}
+                  </p>
+                  <div className="flex items-center gap-4">
+                    <p className="font-kanit font-semibold text-sm text-blenduca-vermelho">
+                      {formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel])}
+                      <span className="font-normal text-blenduca-cinza-medio text-xs ml-1">/ sessao</span>
+                    </p>
+                    <div className="flex items-center gap-2 ml-auto">
+                      <span className="font-kanit text-xs text-blenduca-cinza-medio">Qtd:</span>
+                      <button
+                        onClick={() => setSessaoMentoriaQtd(servicosExtras.sessaoMentoriaQtd - 1)}
+                        disabled={servicosExtras.sessaoMentoriaQtd === 0}
+                        className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center font-kanit font-bold text-blenduca-grafite text-sm"
+                      >
+                        -
+                      </button>
+                      <span className="w-6 text-center font-kanit font-bold text-blenduca-grafite">
+                        {servicosExtras.sessaoMentoriaQtd}
+                      </span>
+                      <button
+                        onClick={() => setSessaoMentoriaQtd(servicosExtras.sessaoMentoriaQtd + 1)}
+                        disabled={servicosExtras.sessaoMentoriaQtd >= 20}
+                        className="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center font-kanit font-bold text-blenduca-grafite text-sm"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  {servicosExtras.sessaoMentoriaQtd > 0 && (
+                    <p className="font-kanit text-xs text-blenduca-grafite mt-2">
+                      {servicosExtras.sessaoMentoriaQtd}x {formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel])} ={" "}
+                      <strong className="text-blenduca-vermelho">
+                        {formatCurrency(SERVICOS_EXTRAS.sessaoMentoria.precos[nivel] * servicosExtras.sessaoMentoriaQtd)}
+                      </strong>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex items-center justify-between">

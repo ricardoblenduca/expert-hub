@@ -5,6 +5,7 @@ import { modalidades, niveisMap } from "@/data/modalidades";
 import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
 import { getPilaresParaModalidadeENivel } from "@/data/entregaveis";
 import { SERVICOS_EXTRAS } from "@/data/servicosExtras";
+import { experienceFlixAvulso, funnelPagesAvulso, getPacoteFunnelById } from "@/data/tecnologiaAvulsa";
 
 const COLORS = {
   grafite: [34, 34, 34] as [number, number, number],
@@ -363,6 +364,121 @@ export async function generateProposalPDF(proposta: Proposta) {
     y += 2;
   }
 
+  // V0.20: Detailed Technology for standalone tech flow (B'TECH)
+  const { tecnologiaAvulsa, tipoProposta } = carrinho;
+  if (tipoProposta === "tecnologia" && tecnologiaAvulsa) {
+    // B'TECH Header
+    checkPageBreak(35);
+    const corBtech: [number, number, number] = [17, 63, 75]; // #113F4B
+    doc.setFillColor(...corBtech);
+    doc.roundedRect(margin, y - 2, contentWidth, 28, 2, 2, "F");
+
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.text("SOLUCAO PROPOSTA", pageWidth / 2, y + 4, { align: "center" });
+
+    doc.setFontSize(16);
+    doc.text("B'TECH - TECNOLOGIA AVULSA", pageWidth / 2, y + 14, { align: "center" });
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    const btechDesc = "Solucao tecnologica completa para potencializar seu negocio de conhecimento com plataformas profissionais.";
+    const btechLines = doc.splitTextToSize(btechDesc, contentWidth - 20);
+    doc.text(btechLines.slice(0, 2), pageWidth / 2, y + 22, { align: "center" });
+
+    y += 32;
+
+    // Experience Flix Card
+    if (tecnologiaAvulsa.experienceFlix) {
+      const flixData = experienceFlixAvulso[tecnologiaAvulsa.experienceFlix.plano];
+      checkPageBreak(50);
+
+      doc.setFillColor(...COLORS.bgLight);
+      doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
+      doc.setFontSize(10);
+      doc.setTextColor(...COLORS.grafite);
+      doc.setFont("helvetica", "bold");
+      doc.text(
+        `${sectionNum}. EXPERIENCE FLIX - ${flixData.plano.toUpperCase()}`,
+        margin + 3,
+        y + 4
+      );
+      y += 14;
+      sectionNum++;
+
+      bodyText(flixData.nome, true, 3);
+      bodyText(flixData.descricao, false, 6);
+      y += 1;
+
+      flixData.recursos.forEach((rec) => {
+        bulletPoint(rec, 6, COLORS.verde);
+      });
+      y += 2;
+
+      // Investment
+      if ((flixData.investimento.entrada ?? 0) > 0) {
+        bodyText(`Setup (entrada): ${formatCurrency(flixData.investimento.entrada!)}`, false, 6);
+      }
+      bodyText(`Mensal: ${formatCurrency(flixData.investimento.mensal)}/mes`, true, 6);
+      y += 4;
+    }
+
+    // Funnel Pages Card
+    if (tecnologiaAvulsa.funnelPages) {
+      const funnelConfig = tecnologiaAvulsa.funnelPages;
+      const pacoteData = funnelConfig.pacoteId ? getPacoteFunnelById(funnelConfig.pacoteId) : null;
+      const funnelNome = pacoteData ? `${funnelPagesAvulso.nome} - ${pacoteData.nome}` : funnelPagesAvulso.nome;
+      const funnelDesc = pacoteData ? pacoteData.descricao : `${funnelConfig.quantidade} funis customizados`;
+      const defaultRecursos = [
+        `${funnelConfig.quantidade} funis de vendas`,
+        "Squad de desenvolvimento (copy/design/dev)",
+        "Pagina de obrigado integrada ao WhatsApp",
+        "Atendimento via WhatsApp e Suporte Tecnico",
+      ];
+      const recursos = pacoteData?.recursos ?? defaultRecursos;
+      const tipos = pacoteData?.tipos ?? funnelConfig.tipos;
+
+      checkPageBreak(50);
+
+      doc.setFillColor(...COLORS.bgLight);
+      doc.roundedRect(margin, y - 2, contentWidth, 10, 1, 1, "F");
+      doc.setFontSize(10);
+      doc.setTextColor(...COLORS.grafite);
+      doc.setFont("helvetica", "bold");
+      const funnelTitle = pacoteData
+        ? `${sectionNum}. FUNNEL PAGES - ${pacoteData.nome} (${funnelConfig.quantidade} funis)`
+        : `${sectionNum}. FUNNEL PAGES (${funnelConfig.quantidade} funis)`;
+      doc.text(funnelTitle, margin + 3, y + 4);
+      y += 14;
+      sectionNum++;
+
+      bodyText(funnelNome, true, 3);
+      bodyText(funnelDesc, false, 6);
+      y += 1;
+
+      // Tipos de funis
+      if (tipos && tipos.length > 0) {
+        bodyText("Funis inclusos:", true, 3);
+        tipos.forEach((tipo) => {
+          bulletPoint(tipo, 6, COLORS.vermelho);
+        });
+        y += 2;
+      }
+
+      // Resources
+      bodyText("Recursos:", true, 3);
+      recursos.forEach((rec) => {
+        bulletPoint(rec, 6, COLORS.verde);
+      });
+      y += 2;
+
+      // Investment
+      bodyText(`Mensal: ${formatCurrency(funnelConfig.mensal)}/mes`, true, 6);
+      y += 4;
+    }
+  }
+
   // Upgrades
   if (resumo.upgradeFlixMensal > 0 || resumo.funisExtrasMensal > 0) {
     checkPageBreak(20);
@@ -692,9 +808,11 @@ export async function generateProposalPDF(proposta: Proposta) {
   if (resumo.subtotalSetup > 0) boxHeight += 18; // Reduced from 24
   if (resumo.centralInteligenciaSetup > 0) boxHeight += 5; // Reduced from 6
   if (resumo.servicosExtrasTotal > 0 && (nivel || servicosExtras.expertPlanningNivel || servicosExtras.sessaoMentoriaQtd > 0)) boxHeight += (servicosExtras.expertPlanning ? 5 : 0) + (servicosExtras.sessaoMentoriaQtd > 0 ? 5 : 0); // V0.18/V0.19
+  if (resumo.techAvulsaEntrada > 0) boxHeight += 5; // V0.20
   if (resumo.valorDescontoSetup > 0) boxHeight += 10; // Reduced from 12
   if (resumo.totalUpgradesMensal > 0) boxHeight += 5;
   if (resumo.agentesMensal > 0) boxHeight += 5;
+  if (resumo.techAvulsaMensal > 0) boxHeight += 5; // V0.20
   if (resumo.valorDescontoMensal > 0) boxHeight += 10; // Reduced from 14
   if (resumo.economia > 0) boxHeight += 5;
   if (resumo.economiaAnualTotal > 0) boxHeight += 10; // V0.16: economia total with details
@@ -747,6 +865,18 @@ export async function generateProposalPDF(proposta: Proposta) {
       doc.setTextColor(...COLORS.grafite);
       doc.setFont("helvetica", "bold");
       doc.text(formatCurrency(resumo.agentesSetup), boxRight, y + 3, { align: "right" });
+      y += 5;
+    }
+
+    // V0.20: Tech Avulsa setup
+    if (resumo.techAvulsaEntrada > 0) {
+      doc.setFontSize(8);
+      doc.setTextColor(...COLORS.cinza);
+      doc.setFont("helvetica", "normal");
+      doc.text("Setup Tecnologia:", boxMargin, y + 3);
+      doc.setTextColor(...COLORS.grafite);
+      doc.setFont("helvetica", "bold");
+      doc.text(formatCurrency(resumo.techAvulsaEntrada), boxRight, y + 3, { align: "right" });
       y += 5;
     }
 
@@ -861,6 +991,18 @@ export async function generateProposalPDF(proposta: Proposta) {
     doc.setTextColor(...COLORS.grafite);
     doc.setFont("helvetica", "bold");
     doc.text(formatCurrency(resumo.agentesMensal), boxRight, y + 3, { align: "right" });
+    y += 5;
+  }
+
+  // V0.20: Tech Avulsa mensal
+  if (resumo.techAvulsaMensal > 0) {
+    doc.setFontSize(8);
+    doc.setTextColor(...COLORS.cinza);
+    doc.setFont("helvetica", "normal");
+    doc.text("Tecnologia:", boxMargin, y + 3);
+    doc.setTextColor(...COLORS.grafite);
+    doc.setFont("helvetica", "bold");
+    doc.text(formatCurrency(resumo.techAvulsaMensal), boxRight, y + 3, { align: "right" });
     y += 5;
   }
 

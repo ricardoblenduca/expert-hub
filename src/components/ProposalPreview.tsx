@@ -7,6 +7,7 @@ import { modalidades, niveisMap } from "@/data/modalidades";
 import { tecnologiaInclusa, upgradeExperienceFlixOpcoes, funisAdicionaisConfig } from "@/data/tecnologiaInclusa";
 import { getPilaresParaModalidadeENivel } from "@/data/entregaveis";
 import { SERVICOS_EXTRAS } from "@/data/servicosExtras";
+import { experienceFlixAvulso, funnelPagesAvulso, getPacoteFunnelById } from "@/data/tecnologiaAvulsa";
 import type { Proposta, NivelId, ModalidadeId } from "@/types";
 
 // V0.17 Updated: Program names, colors, and descriptions
@@ -62,7 +63,7 @@ export default function ProposalPreview() {
   const [generating, setGenerating] = useState(false);
 
   const resumo = calcularResumo();
-  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, centralInteligencia, agentes, coprodutor, servicosExtras, descontoMensal, descontoSetup } = carrinho;
+  const { modalidade, nivel, upgradeExperienceFlix, funisExtras, centralInteligencia, agentes, coprodutor, servicosExtras, descontoMensal, descontoSetup, tecnologiaAvulsa, tipoProposta } = carrinho;
 
   const modalidadeData = modalidade ? modalidades[modalidade] : null;
   const nivelData = nivel ? niveisMap[nivel] : null;
@@ -394,6 +395,193 @@ export default function ProposalPreview() {
                     </ul>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* V0.20: Detailed Technology for standalone tech flow (B'TECH) */}
+            {tipoProposta === "tecnologia" && tecnologiaAvulsa && (
+              <div className="mb-6">
+                {/* B'TECH Header */}
+                <div
+                  className="mb-6 p-6 md:p-8 rounded-xl text-center shadow-lg"
+                  style={{
+                    background: "linear-gradient(135deg, #113F4B 0%, #0a2a33 100%)"
+                  }}
+                >
+                  <div className="inline-block px-4 py-1.5 bg-white/20 rounded-full mb-4">
+                    <span className="font-play text-[10px] font-bold tracking-wider uppercase text-white">
+                      SOLUCAO PROPOSTA
+                    </span>
+                  </div>
+                  <h2 className="font-kanit font-bold text-2xl md:text-3xl text-white mb-3 tracking-wide" style={{ textShadow: "0 2px 4px rgba(0, 0, 0, 0.3)" }}>
+                    B&apos;TECH - TECNOLOGIA AVULSA
+                  </h2>
+                  <p className="font-kanit text-sm text-white/90 max-w-lg mx-auto">
+                    Solucao tecnologica completa para potencializar seu negocio de conhecimento com plataformas profissionais.
+                  </p>
+                </div>
+
+                {/* Experience Flix Card */}
+                {tecnologiaAvulsa.experienceFlix && (() => {
+                  const flixData = experienceFlixAvulso[tecnologiaAvulsa.experienceFlix!.plano];
+                  return (
+                    <div className="mb-4 border border-gray-100 rounded-lg p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-lg">🎬</span>
+                        <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blenduca-verde text-white px-2 py-1 rounded">
+                          EXPERIENCE FLIX
+                        </span>
+                        <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blenduca-azul text-white px-2 py-1 rounded">
+                          {flixData.plano.toUpperCase()}
+                        </span>
+                      </div>
+
+                      <h4 className="font-kanit font-semibold text-sm text-blenduca-grafite mb-1">
+                        {flixData.nome}
+                      </h4>
+                      <p className="font-kanit text-xs text-blenduca-cinza-medio mb-3">
+                        {flixData.descricao}
+                      </p>
+
+                      {/* Resources */}
+                      <ul className="space-y-0.5 mb-3">
+                        {flixData.recursos.map((rec, i) => (
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 text-xs font-kanit text-blenduca-cinza-medio"
+                          >
+                            <span className="text-blenduca-verde shrink-0">&#10003;</span>
+                            {rec}
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* Investment */}
+                      <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        {(flixData.investimento.entrada ?? 0) > 0 && (
+                          <div className="flex justify-between text-xs font-kanit mb-1">
+                            <span className="text-blenduca-cinza-medio">Setup (entrada):</span>
+                            <span className="font-semibold text-blenduca-grafite">
+                              {formatCurrency(flixData.investimento.entrada!)}
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm font-kanit">
+                          <span className="text-blenduca-cinza-medio">Mensal:</span>
+                          <span className="font-bold text-blenduca-grafite">
+                            {formatCurrency(flixData.investimento.mensal)}/mes
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Funnel Pages Card */}
+                {tecnologiaAvulsa.funnelPages && (() => {
+                  const funnelConfig = tecnologiaAvulsa.funnelPages!;
+                  const pacoteData = funnelConfig.pacoteId ? getPacoteFunnelById(funnelConfig.pacoteId) : null;
+                  const funnelNome = pacoteData ? `${funnelPagesAvulso.nome} - ${pacoteData.nome}` : funnelPagesAvulso.nome;
+                  const funnelDesc = pacoteData ? pacoteData.descricao : `${funnelConfig.quantidade} funis customizados`;
+                  const defaultRecursos = [
+                    `${funnelConfig.quantidade} funis de vendas`,
+                    "Squad de desenvolvimento (copy/design/dev)",
+                    "Pagina de obrigado integrada ao WhatsApp",
+                    "Atendimento via WhatsApp e Suporte Tecnico",
+                  ];
+                  const recursos = (pacoteData?.recursos ?? defaultRecursos);
+                  const tipos = pacoteData?.tipos ?? funnelConfig.tipos;
+
+                  return (
+                    <div className="mb-4 border border-gray-100 rounded-lg p-5">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-lg">📄</span>
+                        <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blenduca-vermelho text-white px-2 py-1 rounded">
+                          FUNNEL PAGES
+                        </span>
+                        {pacoteData && (
+                          <span className="font-play text-[10px] font-bold tracking-wider uppercase bg-blenduca-azul text-white px-2 py-1 rounded">
+                            {pacoteData.nome}
+                          </span>
+                        )}
+                        <span className="font-kanit text-xs text-blenduca-cinza-medio">
+                          ({funnelConfig.quantidade} {funnelConfig.quantidade === 1 ? "funil" : "funis"})
+                        </span>
+                      </div>
+
+                      <h4 className="font-kanit font-semibold text-sm text-blenduca-grafite mb-1">
+                        {funnelNome}
+                      </h4>
+                      <p className="font-kanit text-xs text-blenduca-cinza-medio mb-3">
+                        {funnelDesc}
+                      </p>
+
+                      {/* Tipos de funis */}
+                      {tipos && tipos.length > 0 && (
+                        <div className="mb-3">
+                          <p className="font-kanit text-xs font-semibold text-blenduca-grafite mb-1">
+                            Funis inclusos:
+                          </p>
+                          <ul className="space-y-0.5">
+                            {tipos.map((tipo, i) => (
+                              <li
+                                key={i}
+                                className="flex items-start gap-2 text-xs font-kanit text-blenduca-cinza-medio"
+                              >
+                                <span className="text-blenduca-vermelho shrink-0">&#10003;</span>
+                                {tipo}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* Resources */}
+                      <ul className="space-y-0.5 mb-3">
+                        {recursos.map((rec, i) => (
+                          <li
+                            key={i}
+                            className="flex items-start gap-2 text-xs font-kanit text-blenduca-cinza-medio"
+                          >
+                            <span className="text-blenduca-verde shrink-0">&#10003;</span>
+                            {rec}
+                          </li>
+                        ))}
+                      </ul>
+
+                      {/* Investment */}
+                      <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div className="flex justify-between text-sm font-kanit">
+                          <span className="text-blenduca-cinza-medio">Mensal:</span>
+                          <span className="font-bold text-blenduca-grafite">
+                            {formatCurrency(funnelConfig.mensal)}/mes
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Investment Summary for standalone tech */}
+                <div className="bg-blenduca-cinza/30 rounded-lg p-4 border border-gray-100">
+                  <h4 className="font-kanit font-semibold text-xs uppercase tracking-wide text-blenduca-cinza-medio mb-3">
+                    Resumo do Investimento em Tecnologia
+                  </h4>
+                  {resumo.techAvulsaEntrada > 0 && (
+                    <div className="flex justify-between text-sm font-kanit mb-1">
+                      <span className="text-blenduca-cinza-medio">Setup (entrada):</span>
+                      <span className="font-semibold text-blenduca-grafite">
+                        {formatCurrency(resumo.techAvulsaEntrada)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-kanit">
+                    <span className="text-blenduca-cinza-medio">Mensal Tecnologia:</span>
+                    <span className="font-bold text-blenduca-grafite">
+                      {formatCurrency(resumo.techAvulsaMensal)}/mes
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -777,6 +965,15 @@ export default function ProposalPreview() {
                         </span>
                       </div>
                     )}
+                    {/* V0.20: Tech Avulsa setup */}
+                    {resumo.techAvulsaEntrada > 0 && (
+                      <div className="flex justify-between text-sm font-kanit">
+                        <span className="text-blenduca-cinza-medio">Setup Tecnologia:</span>
+                        <span className="font-medium text-blenduca-grafite">
+                          {formatCurrency(resumo.techAvulsaEntrada)}
+                        </span>
+                      </div>
+                    )}
 
                     {/* Servicos Extras V0.18/V0.19: Updated to support avulso mode */}
                     {resumo.servicosExtrasTotal > 0 && (nivel || servicosExtras.expertPlanningNivel || servicosExtras.sessaoMentoriaQtd > 0) && (
@@ -889,6 +1086,15 @@ export default function ProposalPreview() {
                     <span className="text-blenduca-cinza-medio">Agentes A.I:</span>
                     <span className="font-medium text-blenduca-grafite">
                       {formatCurrency(resumo.agentesMensal)}
+                    </span>
+                  </div>
+                )}
+                {/* V0.20: Tech Avulsa mensal */}
+                {resumo.techAvulsaMensal > 0 && (
+                  <div className="flex justify-between text-sm font-kanit">
+                    <span className="text-blenduca-cinza-medio">Tecnologia:</span>
+                    <span className="font-medium text-blenduca-grafite">
+                      {formatCurrency(resumo.techAvulsaMensal)}
                     </span>
                   </div>
                 )}
